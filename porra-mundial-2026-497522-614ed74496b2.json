@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "porra-mundial-2026-497522",
+  "private_key_id": "614ed74496b24a402169005c0b968ebb3645bf2c",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCxJS9fiOXEDHMY\nHxOD9JuTBjPFxFjlzuxgBzc2hcRU59YzFpiide2BQ1pUWAV5SiNxBh/3PQ4fBOe+\nFP+TklwZbrYQT9z92evSvZFH411UewYYBuaxIhfmH0wGwid4D3exbjn3tIUX2q8P\nphHxOPDr3+w6zxawTaRJEldFnGaCBqQWvozfP71EhNfRTdlSC9Ay+AGiVSwErEGe\nKEMNGnLltth1fhOGy/vzYVOScvdh9BPN2B/UVBCV76DLPrCgsdzvhNCh1xMVmsAB\nfGm4EZ4J0umsSKIs2wC35+JiXgx9twrw6ujp3wUipxNGxSYNtTOAHMFRuf+eZZ2S\n+Ag8Fh97AgMBAAECggEAChkski2jq4FqLj3XRvZyx/bajLOcvb0GDJNcumb1wkFV\nHKR1Hw3J9Ex6ocRCy59GVfMbb2SzoWEONO/NggQd6/U7u8JRvsblgqX72jVD5MT+\nm/AIxqBC7INsOhZnWZjIIf0+oLhRvgJhaGr3KuEsGsYxGUkk6fgDHYdGIlnAHjla\naIPjP/bQ7UZcv68vY/iGuGTlz0VHHQYQ3SaohvrwpD4hMiHLs1G7yq97K3TaUlJf\nWHBDBvB7lV1tr8yMzTnPvqTLRGo0E8V+N07oc3/dXDP30Ldw+3nwEntjF5Sw+ybC\ndMkkMirxCsxsmQuGnrFKbB8cXvpk7wu+/+vht7+SwQKBgQDZOJEdqB8biA0qlvhy\nuPXA2uvaQUT/dgcx4fnZVl4kI8M7JwhJmNqjKJEIyqFHGdLw2+heGAdSZEiqicua\nDTKjaRPka2lzpYdNWAZ3ge7MOEuWkn/nMmQffzUSj4yWFhhpdPlYXqeGuBfisHgL\ncnrVl0J8wXD+gMvjbZO2JpxczQKBgQDQxRP1zbxA+emPNjoOH/GyFx1FPlD4UonM\nFqnpmf4dejloqc0ZEKdnSlC2khiOWeXRnzA0XCC3NxCNMfJ/tHuYVD7oSuJZ9S0T\nf3KsbXsEhT2X2bKv0JpEr/bzzM2WNcDIKXhZf8Obn+gJSqTV7o61y7GrNEaLKIR7\nZvnchk/tZwKBgQDFB3cxdE6LFXQD3p6KyNQ40xo9hRiFs1RBXdzX02xe0YWDgRsW\nTqx6dBBh7hItwPHCAWYa+yahCE+VSJnCKRh2ephNh1RGTq2UbTSob9XfrWx6rnWP\nivigTS0hoc1+UZphBXYqPukr3I3l0/V/RJ7AYIwxRvEsGD1YFAt4nDsWPQKBgAYI\njAkghv5BurQ+1vKtjaid7mSf5msmx4C0bvinUKa9b4dM0PaWeqALj8WW90q14mRq\ne1QoDXH+D2ZlOSLjrma6mI7SCzSaV1Em78N37oQ07ZDD49wc5Thy9WoaUx6yMv4V\n5LqBbL/EoUoTdCwSluE+H8ZY3mkLJLkEQthSsWClAoGARZC+DK/9JilVFkDOUy2C\n0sN5gq34azhPjzykVKZqGQ5Ej10sXVXQR1GoGhTId+eEQkqiATCiPSzPWFhTWknf\nFxCL+uQSo6F6whEIk374JwZb++tQ7vUAi5wZ2OiII0LwDNqSi6L1tzhadIFhMDrw\nxrqwTD2ZxM2spLmpD2B5Thg=\n-----END PRIVATE KEY-----\n",
+  "client_email": "porra-bot@porra-mundial-2026-497522.iam.gserviceaccount.com",
+  "client_id": "104412634950518438051",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/porra-bot%40porra-mundial-2026-497522.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}
