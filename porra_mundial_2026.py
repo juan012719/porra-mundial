@@ -52,7 +52,7 @@ CRUCES_FINALES  = {"M103 (3º y 4º)": ("M101_L","M102_L"), "M104 (FINAL)": ("M1
 @st.cache_resource
 def get_gsheet_client():
     scopes = ["https://www.googleapis.com/auth/spreadsheets"]
-    creds_dict = dict.loads(st.secrets["GOOGLE_SERVICE_ACCOUNT"])
+    creds_dict = dict(st.secrets["GOOGLE_SERVICE_ACCOUNT"])
     creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
     return gspread.authorize(creds)
 
