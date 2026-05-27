@@ -299,7 +299,7 @@ with st.sidebar:
 # ══════════════════════════════════════════
 if menu == "📊 Clasificación General":
     # CABECERA AÑADIDA
-    st.image("TU_IMAGEN_AQUI.jpg", use_container_width=True)
+    st.image("MESSI.jpg", use_container_width=True)
     st.markdown('<div class="titulo-principal">📊 Clasificación General</div>', unsafe_allow_html=True)
     st.write("")
     if not participantes:
