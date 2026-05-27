@@ -161,7 +161,7 @@ def cargar_ajustes_puntos():
         rows = sb.table("ajustes_puntos").select("*").execute().data
         return {r["nombre"]: r["puntos_extra"] for r in rows}
     except Exception:
-        return {} # Si la tabla no existe, no falla y devuelve vacío
+        return {}
 
 def guardar_participantes(participantes):
     sb = get_supabase()
@@ -202,7 +202,7 @@ def guardar_ajuste_puntos(nombre, puntos_extra):
         sb.table("ajustes_puntos").upsert({"nombre": nombre, "puntos_extra": puntos_extra}).execute()
         cargar_ajustes_puntos.clear()
     except Exception as e:
-        st.error("Error: Asegúrate de crear la tabla 'ajustes_puntos' en Supabase con columnas 'nombre' y 'puntos_extra'.")
+        st.error("Error: Asegúrate de crear la tabla 'ajustes_puntos' en Supabase.")
 
 if "admin" not in st.session_state:
     st.session_state.admin = False
@@ -317,7 +317,6 @@ with st.sidebar:
                 st.session_state.admin = False; st.rerun()
 
     st.divider()
-    # AÑADIDO: "📅 Resultados Partidos" a las opciones públicas
     opciones_menu = ["📊 Clasificación General", "🏆 Tabla de Grupos", "📅 Resultados Partidos", "⚽ Cuadro Eliminatorias"]
     if st.session_state.admin:
         opciones_menu += ["👥 Participantes", "🔧 Resultados Grupos", "⚔️ Resultados Eliminatorias", "🥇 Pichichi", "➕ Ajuste Puntos"]
@@ -379,4 +378,205 @@ elif menu == "🏆 Tabla de Grupos":
                 if row.name <= 2: return ['background-color:#1a472a;color:white']*len(row)
                 if row.name == 3 and row['Equipo'] in mejores_3: return ['background-color:#2d4a1e;color:#90EE90']*len(row)
                 return ['color:#888']*len(row)
-            st.dataframe(df_g.style.apply(hl,axis=1), use_
+            st.dataframe(df_g.style.apply(hl,axis=1), use_container_width=True, hide_index=False)
+
+    if pos_grupos:
+        st.write("")
+        st.markdown("### Clasificados a Dieciseisavos")
+        ca,cb,cc = st.columns(3)
+        with ca:
+            st.markdown("**🥇 Primeros de grupo**")
+            for k,v in sorted((k,v) for k,v in pos_grupos.items() if k.startswith("1")):
+                st.markdown(f"{flag(v)} **{v}** `{k}`")
+        with cb:
+            st.markdown("**🥈 Segundos de grupo**")
+            for k,v in sorted((k,v) for k,v in pos_grupos.items() if k.startswith("2")):
+                st.markdown(f"{flag(v)} **{v}** `{k}`")
+        with cc:
+            st.markdown("**🥉 Mejores terceros**")
+            for k,v in sorted((k,v) for k,v in pos_grupos.items() if k.startswith("3")):
+                st.markdown(f"{flag(v)} **{v}** `{k}`")
+
+# ══════════════════════════════════════════
+# RESULTADOS DE PARTIDOS PÚBLICOS
+# ══════════════════════════════════════════
+elif menu == "📅 Resultados Partidos":
+    st.markdown('<div class="titulo-principal">📅 Resultados de los Partidos</div>', unsafe_allow_html=True)
+    st.write("")
+
+    st.markdown("### Fase de Grupos")
+    c1, c2, c3 = st.columns(3)
+    col_idx = 0
+    for g, equipos in GRUPOS.items():
+        with [c1, c2, c3][col_idx % 3]:
+            st.markdown(f"#### Grupo {g}")
+            cruces = [(equipos[0],equipos[1]), (equipos[2],equipos[3]), (equipos[0],equipos[2]), (equipos[1],equipos[3]), (equipos[0],equipos[3]), (equipos[1],equipos[2])]
+            html_partidos = ""
+            for eA, eB in cruces:
+                key = f"{eA}_{eB}"
+                if key in resultados_grupos:
+                    r = resultados_grupos[key]
+                    html_partidos += f'<div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #2d3748; font-size:0.9em;"><span style="color:white;">{flag(eA)} {eA}</span> <span style="background:#FFD700; color:#000; padding:2px 8px; border-radius:4px; font-weight:bold;">{r["goles_A"]} - {r["goles_B"]}</span> <span style="color:white;">{eB} {flag(eB)}</span></div>'
+                else:
+                    html_partidos += f'<div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #2d3748; color:#888; font-size:0.9em;"><span>{flag(eA)} {eA}</span> <span>vs</span> <span>{eB} {flag(eB)}</span></div>'
+            st.markdown(f'<div class="card" style="padding:10px;">{html_partidos}</div>', unsafe_allow_html=True)
+        col_idx += 1
+
+    st.divider()
+    st.markdown("### Eliminatorias")
+    if not resultados_elim:
+        st.info("Aún no hay resultados de la fase de eliminatorias.")
+    else:
+        c1_elim, c2_elim = st.columns(2)
+        for i, (m_id, r) in enumerate(resultados_elim.items()):
+            eA, eB = r['equipo_A'], r['equipo_B']
+            ganador = r['ganador']
+            with [c1_elim, c2_elim][i % 2]:
+                st.markdown(f"""
+                <div class="card" style="padding:15px; margin-bottom:10px;">
+                    <div style="font-size:0.8em; color:#888; margin-bottom:5px;">{m_id} · {r['resolucion']}</div>
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <span style="font-weight:{'bold' if ganador==eA else 'normal'}; color:{'#FFD700' if ganador==eA else 'white'};">{flag(eA)} {eA}</span>
+                        <span style="background:#FFD700; color:#000; padding:4px 10px; border-radius:6px; font-weight:bold; font-size:1.1em;">{r['goles_A']} - {r['goles_B']}</span>
+                        <span style="font-weight:{'bold' if ganador==eB else 'normal'}; color:{'#FFD700' if ganador==eB else 'white'};">{eB} {flag(eB)}</span>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+
+# ══════════════════════════════════════════
+# CUADRO ELIMINATORIAS
+# ══════════════════════════════════════════
+elif menu == "⚽ Cuadro Eliminatorias":
+    st.markdown('<div class="titulo-principal">⚽ Cuadro de Eliminatorias</div>', unsafe_allow_html=True)
+    st.write("")
+
+    def qu_gan(m_id, perdedor=False):
+        if m_id in resultados_elim: return resultados_elim[m_id]['perdedor' if perdedor else 'ganador']
+        return f"❓"
+
+    def mostrar_cruce(m_id, eA, eB):
+        d = resultados_elim.get(m_id)
+        fA = flag(eA) if eA in VALOR_EQUIPOS else "❓"
+        fB = flag(eB) if eB in VALOR_EQUIPOS else "❓"
+        if d:
+            gan = d['ganador']
+            st.markdown(f"""<div class="card" style="padding:12px">
+                <div style="font-size:0.75em;color:#888;margin-bottom:4px">{m_id}</div>
+                <div style="display:flex;justify-content:space-between;align-items:center">
+                    <span style="{'font-weight:900;color:#FFD700' if gan==eA else 'color:#888'}">{fA} {eA}</span>
+                    <span class="resultado-badge">{d['goles_A']} - {d['goles_B']}</span>
+                    <span style="{'font-weight:900;color:#FFD700' if gan==eB else 'color:#888'}">{eB} {fB}</span>
+                </div>
+                <div style="text-align:center;margin-top:6px;font-size:0.8em;color:#888">{d['resolucion']} · 🏆 <b style="color:#FFD700">{gan}</b></div>
+            </div>""", unsafe_allow_html=True)
+        else:
+            st.markdown(f"""<div class="card" style="padding:12px;border:1px dashed #2d3748">
+                <div style="font-size:0.75em;color:#888;margin-bottom:4px">{m_id}</div>
+                <div style="display:flex;justify-content:space-between;align-items:center;color:#555">
+                    <span>{fA} {eA}</span>
+                    <span style="color:#333">vs</span>
+                    <span>{fB} {eB}</span>
+                </div>
+            </div>""", unsafe_allow_html=True)
+
+    st.markdown("### 🔵 Dieciseisavos de Final")
+    c16 = st.columns(4)
+    for i,(m_id,(c1,c2)) in enumerate(EMPAREJAMIENTOS_16VOS.items()):
+        with c16[i%4]: mostrar_cruce(m_id, pos_grupos.get(c1,c1), pos_grupos.get(c2,c2))
+
+    st.markdown("### 🟡 Octavos de Final")
+    c8 = st.columns(4)
+    for i,(m_id,(m1,m2)) in enumerate(CRUCES_OCTAVOS.items()):
+        with c8[i%4]: mostrar_cruce(m_id, qu_gan(m1), qu_gan(m2))
+
+    st.markdown("### 🟠 Cuartos de Final")
+    c4 = st.columns(4)
+    for i,(m_id,(m1,m2)) in enumerate(CRUCES_CUARTOS.items()):
+        with c4[i%4]: mostrar_cruce(m_id, qu_gan(m1), qu_gan(m2))
+
+    st.markdown("### 🔴 Semifinales")
+    c2 = st.columns(2)
+    for i,(m_id,(m1,m2)) in enumerate(CRUCES_SEMIS.items()):
+        with c2[i]: mostrar_cruce(m_id, qu_gan(m1), qu_gan(m2))
+
+    st.markdown("### 🏆 Finales")
+    cf = st.columns(2)
+    for i,(m_id,(m1,m2)) in enumerate(CRUCES_FINALES.items()):
+        with cf[i]: mostrar_cruce(m_id, qu_gan(m1.replace("_L",""),perdedor="_L" in m1), qu_gan(m2.replace("_L",""),perdedor="_L" in m2))
+
+# ══════════════════════════════════════════
+# ADMIN - PARTICIPANTES
+# ══════════════════════════════════════════
+elif menu == "👥 Participantes":
+    st.markdown('<div class="titulo-principal">👥 Gestión de Participantes</div>', unsafe_allow_html=True)
+    st.write("")
+    with st.form("form_amigos"):
+        nombre = st.text_input("Nombre del participante")
+        equipos_sel = st.multiselect("Selecciones (máx 30 pts)", list(VALOR_EQUIPOS.keys()),
+                                      format_func=lambda x: f"{flag(x)} {x} ({VALOR_EQUIPOS[x]} pts)")
+        coste = sum(VALOR_EQUIPOS[e] for e in equipos_sel)
+        color = "green" if coste <= 30 else "red"
+        st.markdown(f"Coste: <b style='color:{color}'>{coste} / 30 pts</b>", unsafe_allow_html=True)
+        if st.form_submit_button("✅ Añadir / Actualizar", use_container_width=True):
+            if not nombre: st.error("Falta el nombre.")
+            elif coste > 30: st.error(f"Demasiados puntos ({coste}/30).")
+            else:
+                participantes[nombre] = equipos_sel
+                guardar_participantes(participantes)
+                st.success(f"✅ {nombre} guardado."); st.rerun()
+
+    if participantes:
+        st.divider()
+        st.subheader("Participantes actuales")
+        for nom, eqs in participantes.items():
+            c1,c2 = st.columns([5,1])
+            equipos_str = " ".join([flag(e) for e in eqs])
+            c1.markdown(f"**{nom}** ({sum(VALOR_EQUIPOS[e] for e in eqs)} pts) {equipos_str}  \n*{', '.join(eqs)}*")
+            if c2.button("🗑️", key=f"del_{nom}"):
+                del participantes[nom]; guardar_participantes(participantes); st.rerun()
+
+# ══════════════════════════════════════════
+# ADMIN - RESULTADOS GRUPOS
+# ══════════════════════════════════════════
+elif menu == "🔧 Resultados Grupos":
+    st.markdown('<div class="titulo-principal">🔧 Resultados Fase de Grupos</div>', unsafe_allow_html=True)
+    st.info("Los cambios se guardan automáticamente.")
+    st.write("")
+    cols = st.columns(3)
+    for idx,(grupo,eq) in enumerate(GRUPOS.items()):
+        with cols[idx%3]:
+            st.markdown(f"#### Grupo {grupo}")
+            cruces = [(eq[0],eq[1]),(eq[2],eq[3]),(eq[0],eq[2]),(eq[1],eq[3]),(eq[0],eq[3]),(eq[1],eq[2])]
+            for eA,eB in cruces:
+                key = f"{eA}_{eB}"
+                g = resultados_grupos.get(key,{})
+                val_A = str(g.get("goles_A","")) if g else ""
+                val_B = str(g.get("goles_B","")) if g else ""
+                c1,c2,c3,c4 = st.columns([3,1,1,3])
+                c1.markdown(f"{flag(eA)} {eA}")
+                gA = c2.text_input("",key=f"inp_A_{key}",value=val_A,label_visibility="collapsed")
+                gB = c3.text_input("",key=f"inp_B_{key}",value=val_B,label_visibility="collapsed")
+                c4.markdown(f"{eB} {flag(eB)}")
+                if gA.isdigit() and gB.isdigit():
+                    if not g or g.get("goles_A")!=int(gA) or g.get("goles_B")!=int(gB):
+                        guardar_resultado_grupo(key,eA,eB,int(gA),int(gB))
+                elif val_A!="" and gA=="" and gB=="":
+                    borrar_resultado_grupo(key)
+            st.divider()
+    st.success(f"✅ {len(resultados_grupos)} / 72 partidos guardados")
+
+# ══════════════════════════════════════════
+# ADMIN - ELIMINATORIAS
+# ══════════════════════════════════════════
+elif menu == "⚔️ Resultados Eliminatorias":
+    st.markdown('<div class="titulo-principal">⚔️ Eliminatorias (Admin)</div>', unsafe_allow_html=True)
+    st.write("")
+
+    def qu_gan(m_id, perdedor=False):
+        if m_id in resultados_elim: return resultados_elim[m_id]['perdedor' if perdedor else 'ganador']
+        return f"? ({m_id})"
+
+    def renderizar(m_id, eA, eB, col):
+        with col:
+            st.markdown(f"**{m_id}**")
+            if eA not
