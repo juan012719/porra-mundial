@@ -282,7 +282,7 @@ with st.sidebar:
 # ══════════════════════════════════════════
 if menu == "📊 Clasificación General":
     # CABECERA (Asegúrate de que el archivo MESSI.jpg esté en la misma carpeta)
-    st.image("MESSI.jpg", use_container_width=True)
+    st.image("https://fotografias.antena3.com/clipping/cmsimages02/2022/12/19/57017F2A-8327-404D-8997-5C37A44CDC03/messi-replica-iconica-imagen-maradona-copa-mundo_97.jpg?crop=4096,2304,x0,y0&width=1600&height=900&optimize=low&format=webply.jpg", use_container_width=True)
     
     st.markdown('<div class="titulo-principal">📊 Clasificación General</div>', unsafe_allow_html=True)
     st.write("")
