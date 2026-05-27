@@ -233,7 +233,16 @@ def calcular_puntos(df_tabla):
         elif dif<0: puntos[eB]+=3
         else: puntos[eA]+=1; puntos[eB]+=1
     terceros_bono=[]
-    for g in GRUPOS.keys():
+    for g,equipos in GRUPOS.items():
+        # Contar partidos jugados en este grupo
+        cruces_grupo = [
+            f"{equipos[0]}_{equipos[1]}", f"{equipos[2]}_{equipos[3]}",
+            f"{equipos[0]}_{equipos[2]}", f"{equipos[1]}_{equipos[3]}",
+            f"{equipos[0]}_{equipos[3]}", f"{equipos[1]}_{equipos[2]}"
+        ]
+        partidos_jugados = sum(1 for k in cruces_grupo if k in resultados_grupos)
+        if partidos_jugados < 6:
+            continue  # Solo aplicar bonificaciones cuando el grupo esté completo
         eqs=df_tabla[df_tabla['Grupo']==g].to_dict('records')
         if len(eqs)==4:
             puntos[eqs[0]['Equipo']]+=3; puntos[eqs[1]['Equipo']]+=2
