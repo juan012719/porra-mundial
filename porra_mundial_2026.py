@@ -3,7 +3,7 @@ import pandas as pd
 from supabase import create_client
 
 # --- CONFIGURACIÓN ---
-st.set_page_config(page_title="Porra Mundial 2026 🌍", layout="wide", initial_sidebar_state="collapsed"))
+st.set_page_config(page_title="Porra Mundial 2026 🌍", layout="wide", initial_sidebar_state="collapsed")
 
 # CSS personalizado
 st.markdown("""
