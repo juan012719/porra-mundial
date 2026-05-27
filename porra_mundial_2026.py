@@ -154,6 +154,15 @@ def cargar_pichichi():
     rows = sb.table("pichichi").select("*").execute().data
     return rows[0]["equipo"] if rows else None
 
+@st.cache_data(ttl=30)
+def cargar_ajustes_puntos():
+    try:
+        sb = get_supabase()
+        rows = sb.table("ajustes_puntos").select("*").execute().data
+        return {r["nombre"]: r["puntos_extra"] for r in rows}
+    except Exception:
+        return {} # Si la tabla no existe, no falla y devuelve vacío
+
 def guardar_participantes(participantes):
     sb = get_supabase()
     sb.table("participantes").delete().neq("nombre","").execute()
@@ -187,6 +196,14 @@ def guardar_pichichi(eq):
     if eq: sb.table("pichichi").insert({"equipo":eq}).execute()
     cargar_pichichi.clear()
 
+def guardar_ajuste_puntos(nombre, puntos_extra):
+    try:
+        sb = get_supabase()
+        sb.table("ajustes_puntos").upsert({"nombre": nombre, "puntos_extra": puntos_extra}).execute()
+        cargar_ajustes_puntos.clear()
+    except Exception as e:
+        st.error("Error: Asegúrate de crear la tabla 'ajustes_puntos' en Supabase con columnas 'nombre' y 'puntos_extra'.")
+
 if "admin" not in st.session_state:
     st.session_state.admin = False
 
@@ -194,6 +211,7 @@ participantes     = cargar_participantes()
 resultados_grupos = cargar_resultados_grupos()
 resultados_elim   = cargar_resultados_elim()
 pichichi          = cargar_pichichi()
+ajustes_manuales  = cargar_ajustes_puntos()
 
 def obtener_tabla_grupos():
     tabla = []
@@ -225,22 +243,56 @@ def obtener_clasificados(df_tabla):
 
 def calcular_puntos(df_tabla):
     puntos={eq:0 for eq in VALOR_EQUIPOS.keys()}
+    
+    # --- PUNTOS FASE GRUPOS ---
     for p in resultados_grupos.values():
         eA,eB=p['equipo_A'],p['equipo_B']; dif=p['goles_A']-p['goles_B']
+        # Lógica original recuperada: sumar por 3 o más
+        if dif>=3: puntos[eA]+=1; puntos[eB]-=1
+        elif dif<=-3: puntos[eB]+=1; puntos[eA]-=1
+        # Puntos por victoria/empate
         if dif>0: puntos[eA]+=3
         elif dif<0: puntos[eB]+=3
         else: puntos[eA]+=1; puntos[eB]+=1
+        
+    terceros_bono=[]
     
-    # Bonos solo si grupo completo (6 partidos)
+    # --- BONOS DE GRUPO (Solo si el grupo ha terminado los 6 partidos) ---
     for g in GRUPOS.keys():
         partidos = [p for p in resultados_grupos.values() if p['equipo_A'] in GRUPOS[g]]
-        if len(partidos) == 6:
-            eqs = df_tabla[df_tabla['Grupo']==g].sort_values(['Pts','Dif','GF'], ascending=False).to_dict('records')
+        eqs=df_tabla[df_tabla['Grupo']==g].to_dict('records')
+        
+        if len(partidos) == 6 and len(eqs) == 4:
             puntos[eqs[0]['Equipo']]+=3; puntos[eqs[1]['Equipo']]+=2
+            if eqs[3]['Pts']==0: puntos[eqs[3]['Equipo']]-=3
+            else: puntos[eqs[3]['Equipo']]-=1
+            terceros_bono.append(eqs[2])
+            
+    # Bonos mejores terceros (solo si han terminado, para simplificar lo evaluamos siempre)
+    terceros_bono=sorted(terceros_bono,key=lambda x:(x['Pts'],x['Dif'],x['GF']),reverse=True)
+    for i in range(min(8,len(terceros_bono))): puntos[terceros_bono[i]['Equipo']]+=1
     
+    # --- PUNTOS ELIMINATORIAS ---
     for m_id,p in resultados_elim.items():
-        if p['ganador'] in puntos: 
-            puntos[p['ganador']]+= 3 if p['resolucion']=="90 min" else (2 if p['resolucion']=="Prórroga" else 1)
+        eA,eB,res,gan=p['equipo_A'],p['equipo_B'],p['resolucion'],p['ganador']
+        dif=p['goles_A']-p['goles_B']
+        if m_id=="M103 (3º y 4º)": puntos[gan]+=3; continue
+        
+        # Lógica original recuperada: sumar por 3 o más en eliminatorias
+        if dif>=3: puntos[eA]+=1; puntos[eB]-=1
+        elif dif<=-3: puntos[eB]+=1; puntos[eA]-=1
+        
+        if res=="90 min":
+            if dif>0: puntos[eA]+=4
+            elif dif<0: puntos[eB]+=4
+        elif res=="Prórroga":
+            if dif>0: puntos[eA]+=3
+            elif dif<0: puntos[eB]+=3
+        elif res=="Penaltis":
+            puntos[eA]+=1; puntos[eB]+=1; puntos[gan]+=1
+        if m_id=="M104 (FINAL)":
+            puntos[gan]+=10; puntos[eB if gan==eA else eA]+=6
+            
     if pichichi: puntos[pichichi]+=2
     return puntos
 
@@ -271,7 +323,7 @@ with st.sidebar:
     st.divider()
     opciones_menu = ["📊 Clasificación General", "🏆 Tabla de Grupos", "⚽ Cuadro Eliminatorias"]
     if st.session_state.admin:
-        opciones_menu += ["👥 Participantes", "🔧 Resultados Grupos", "⚔️ Resultados Eliminatorias", "🥇 Pichichi"]
+        opciones_menu += ["👥 Participantes", "🔧 Resultados Grupos", "⚔️ Resultados Eliminatorias", "🥇 Pichichi", "➕ Ajuste Puntos"]
     menu = st.radio("", opciones_menu, label_visibility="collapsed")
 
     st.divider()
@@ -281,31 +333,38 @@ with st.sidebar:
 # CLASIFICACIÓN GENERAL
 # ══════════════════════════════════════════
 if menu == "📊 Clasificación General":
-    # CABECERA (Asegúrate de que el archivo MESSI.jpg esté en la misma carpeta)
-    st.image("https://fotografias.antena3.com/clipping/cmsimages02/2022/12/19/57017F2A-8327-404D-8997-5C37A44CDC03/messi-replica-iconica-imagen-maradona-copa-mundo_97.jpg?crop=4096,2304,x0,y0&width=1600&height=900&optimize=low&format=webply.jpg", use_container_width=True)
-    
+    st.image("https://upload.wikimedia.org/wikipedia/commons/b/b4/Lionel-Messi-Argentina-2022.jpg", use_container_width=True)
     st.markdown('<div class="titulo-principal">📊 Clasificación General</div>', unsafe_allow_html=True)
     st.write("")
     if not participantes:
         st.warning("Aún no hay participantes registrados.")
     else:
         pts = calcular_puntos(df_tabla)
-        clasif = sorted(
-            [{"Jugador": a, "Puntos": sum(pts[eq] for eq in eqs), "Equipos": eqs} for a, eqs in participantes.items()],
-            key=lambda x: x["Puntos"], reverse=True
-        )
+        
+        # Calcular los puntos totales por participante, añadiendo los ajustes manuales
+        lista_clasif = []
+        for a, eqs in participantes.items():
+            base_puntos = sum(pts[eq] for eq in eqs)
+            puntos_extra = ajustes_manuales.get(a, 0) # Suma lo que pongas manual (0 si no hay)
+            lista_clasif.append({"Jugador": a, "Puntos": base_puntos + puntos_extra, "Equipos": eqs, "Extra": puntos_extra})
+            
+        clasif = sorted(lista_clasif, key=lambda x: x["Puntos"], reverse=True)
+        
         medallas = ["🥇", "🥈", "🥉"]
         for i, row in enumerate(clasif):
             med = medallas[i] if i < 3 else f"#{i+1}"
             equipos_str = " ".join([f"{flag(e)}" for e in row["Equipos"]])
             nombres_str = ", ".join(row["Equipos"])
-            # NOMBRE EN BLANCO APLICADO
+            
+            extra_badge = f'<span style="font-size:0.5em; background:rgba(255,255,255,0.2); padding:2px 5px; border-radius:4px; margin-left:10px;">Ajuste: {row["Extra"]} pts</span>' if row["Extra"] != 0 else ""
+
             st.markdown(f"""
             <div class="card">
                 <div style="display:flex; justify-content:space-between; align-items:center;">
                     <div>
                         <span style="font-size:1.5em">{med}</span>
                         <span style="font-size:1.3em; font-weight:700; margin-left:10px; color:white;">{row["Jugador"]}</span>
+                        {extra_badge}
                         <br><small style="color:#888">{equipos_str} {nombres_str}</small>
                     </div>
                     <div style="font-size:2em; font-weight:900; color:#FFD700">{row["Puntos"]}<span style="font-size:0.4em; color:#888"> pts</span></div>
@@ -414,7 +473,7 @@ elif menu == "⚽ Cuadro Eliminatorias":
     st.markdown("### 🏆 Finales")
     cf = st.columns(2)
     for i,(m_id,(m1,m2)) in enumerate(CRUCES_FINALES.items()):
-        with cf[i]: mostrar_cruce(m_id, qu_gan(m1.replace("_L",""),perdedor="_L" in m1), qu_gan(m2.replace("_L",""),perdedor="_L" in m2),cf[i])
+        with cf[i]: mostrar_cruce(m_id, qu_gan(m1.replace("_L",""),perdedor="_L" in m1), qu_gan(m2.replace("_L",""),perdedor="_L" in m2))
 
 # ══════════════════════════════════════════
 # ADMIN - PARTICIPANTES
@@ -544,3 +603,25 @@ elif menu == "🥇 Pichichi":
     if st.button("💾 Guardar",use_container_width=True):
         guardar_pichichi(sel if sel!="Ninguno aún..." else None)
         st.success("¡Guardado!")
+
+# ══════════════════════════════════════════
+# ADMIN - AJUSTE PUNTOS MANUALES
+# ══════════════════════════════════════════
+elif menu == "➕ Ajuste Puntos":
+    st.markdown('<div class="titulo-principal">➕ Ajuste Manual de Puntos</div>', unsafe_allow_html=True)
+    st.info("Aquí puedes sumar o restar puntos extra a un participante en particular (ej. por ganar mini-retos o penalizaciones).")
+    
+    if not participantes:
+        st.warning("No hay participantes registrados.")
+    else:
+        nombres = list(participantes.keys())
+        participante_sel = st.selectbox("Selecciona al jugador:", nombres)
+        puntos_actuales = ajustes_manuales.get(participante_sel, 0)
+        
+        st.write(f"Puntos extra actuales para **{participante_sel}**: `{puntos_actuales}`")
+        nuevo_valor = st.number_input("Nuevo valor total de puntos extra (usa negativos para restar):", value=puntos_actuales)
+        
+        if st.button("💾 Aplicar Ajuste", use_container_width=True):
+            guardar_ajuste_puntos(participante_sel, nuevo_valor)
+            st.success(f"Ajuste de {nuevo_valor} pts guardado para {participante_sel}.")
+            st.rerun()
