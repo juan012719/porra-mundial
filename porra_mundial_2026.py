@@ -418,7 +418,9 @@ elif menu == "📅 Resultados Partidos":
                     r = resultados_grupos[key]
                     html_partidos += f'<div style="display:grid; grid-template-columns: 1fr auto 1fr; gap:10px; align-items:center; padding:8px 0; border-bottom:1px solid #2d3748; font-size:0.9em;"><span style="color:white; text-align:right;">{flag(eA)} {eA}</span> <span style="background:#FFD700; color:#000; padding:2px 8px; border-radius:4px; font-weight:bold; text-align:center;">{r["goles_A"]} - {r["goles_B"]}</span> <span style="color:white; text-align:left;">{eB} {flag(eB)}</span></div>'
                 else:
-                    html_partidos += f'<div style="display:grid; grid-template-columns: 1fr auto 1fr; gap:10px; align-items:center; padding:8px 0; border-bottom:1px solid #2d3748; color:#888; font-size:0.9em;"><span style="text-align:right;">{flag(eA)} {eA}</span> <span style="text-align:center;">vs</span> <span style="text-align:left;">{eB} {flag(eB)}</span></div>'
+                    html_partidos += f'<div style="display:grid; grid-template-columns: 1fr auto 1fr; gap:10px; align-items:center; padding:8px 0; border-bottom:1px solid #2d3748; color:#888; font-size:0.9em;"><span style="text-align:right;">{flag(eA)} {eA}</span> <span style="text-align:center; color:#888;">vs</span> <span style="text-align:left;">{eB} {flag(eB)}</span></div>'
+            st.markdown(f'<div class="card" style="padding:10px;">{html_partidos}</div>', unsafe_allow_html=True)
+        col_idx += 1
 
     st.divider()
     st.markdown("### Eliminatorias")
