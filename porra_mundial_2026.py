@@ -359,19 +359,18 @@ if menu == "📊 Clasificación General":
             extra_badge = f'<span style="font-size:0.5em; background:rgba(255,255,255,0.2); padding:2px 5px; border-radius:4px; margin-left:10px;">Ajuste: {row["Extra"]} pts</span>' if row["Extra"] != 0 else ""
 
             st.markdown(f"""
-            <div class="card">
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <div>
-                        <span style="font-size:1.5em">{med}</span>
-                        <span style="font-size:1.3em; font-weight:700; margin-left:10px; color:white;">{row["Jugador"]}</span>
-                        {extra_badge}
-                        <br><small style="color:#888">{equipos_str} {nombres_str}</small>
-                    </div>
-                    <div style="font-size:2em; font-weight:900; color:#FFD700">{row["Puntos"]}<span style="font-size:0.4em; color:#888"> pts</span></div>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-
+<div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div>
+            <span style="font-size:1.5em">{med}</span>
+            <span style="font-size:1.3em; font-weight:700; margin-left:10px; color:white;">{row["Jugador"]}</span>
+            {extra_badge}
+            <br><small style="color:#888">{equipos_str} {nombres_str}</small>
+        </div>
+        <div style="font-size:2em; font-weight:900; color:#FFD700">{row["Puntos"]}<span style="font-size:0.4em; color:#888"> pts</span></div>
+    </div>
+</div>
+""", unsafe_allow_html=True)
 # ══════════════════════════════════════════
 # TABLA DE GRUPOS
 # ══════════════════════════════════════════
