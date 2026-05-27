@@ -579,4 +579,6 @@ elif menu == "⚔️ Resultados Eliminatorias":
     def renderizar(m_id, eA, eB, col):
         with col:
             st.markdown(f"**{m_id}**")
-            if eA not
+            if eA not in VALOR_EQUIPOS or eB not in VALOR_EQUIPOS:
+                st.caption(f"{eA} vs {eB} — esperando..."); return
+            g = resultados_elim.get(m_id,{})
