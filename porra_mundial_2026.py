@@ -35,20 +35,6 @@ st.markdown("""
         margin: 10px 0;
         box-shadow: 0 4px 15px rgba(0,0,0,0.3);
     }
-    .medal-gold { color: #FFD700; font-size: 1.3em; }
-    .medal-silver { color: #C0C0C0; font-size: 1.3em; }
-    .medal-bronze { color: #CD7F32; font-size: 1.3em; }
-    
-    .partido-row {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 6px 10px;
-        margin: 3px 0;
-        background: rgba(255,255,255,0.04);
-        border-radius: 8px;
-        font-size: 0.85em;
-    }
     .resultado-badge {
         background: #FFD700;
         color: #000;
@@ -56,13 +42,6 @@ st.markdown("""
         padding: 2px 8px;
         font-weight: bold;
         font-size: 0.9em;
-    }
-    .ganador-badge {
-        background: linear-gradient(90deg, #FFD700, #FF6B35);
-        color: #000;
-        border-radius: 6px;
-        padding: 3px 10px;
-        font-weight: bold;
     }
     div[data-testid="stSidebarNav"] { display: none; }
     .stRadio > label { font-weight: 600; }
@@ -244,7 +223,6 @@ def obtener_clasificados(df_tabla):
 def calcular_puntos(df_tabla):
     puntos={eq:0 for eq in VALOR_EQUIPOS.keys()}
     
-    # --- PUNTOS FASE GRUPOS ---
     for p in resultados_grupos.values():
         eA,eB=p['equipo_A'],p['equipo_B']; dif=p['goles_A']-p['goles_B']
         if dif>=3: puntos[eA]+=1; puntos[eB]-=1
@@ -255,21 +233,18 @@ def calcular_puntos(df_tabla):
         
     terceros_bono=[]
     
-    # --- BONOS DE GRUPO ---
     for g in GRUPOS.keys():
         partidos = [p for p in resultados_grupos.values() if p['equipo_A'] in GRUPOS[g]]
         eqs=df_tabla[df_tabla['Grupo']==g].to_dict('records')
         
         if len(partidos) == 6 and len(eqs) == 4:
             puntos[eqs[0]['Equipo']]+=3; puntos[eqs[1]['Equipo']]+=2
-            if eqs[3]['Pts']==0: puntos[eqs[3]['Equipo']]-=3
-            else: puntos[eqs[3]['Equipo']]-=1
+            puntos[eqs[3]['Equipo']]-=1
             terceros_bono.append(eqs[2])
             
     terceros_bono=sorted(terceros_bono,key=lambda x:(x['Pts'],x['Dif'],x['GF']),reverse=True)
     for i in range(min(8,len(terceros_bono))): puntos[terceros_bono[i]['Equipo']]+=1
     
-    # --- PUNTOS ELIMINATORIAS ---
     for m_id,p in resultados_elim.items():
         eA,eB,res,gan=p['equipo_A'],p['equipo_B'],p['resolucion'],p['ganador']
         dif=p['goles_A']-p['goles_B']
@@ -582,3 +557,77 @@ elif menu == "⚔️ Resultados Eliminatorias":
             if eA not in VALOR_EQUIPOS or eB not in VALOR_EQUIPOS:
                 st.caption(f"{eA} vs {eB} — esperando..."); return
             g = resultados_elim.get(m_id,{})
+            val_gA = str(g.get("goles_A","")) if g else ""
+            val_gB = str(g.get("goles_B","")) if g else ""
+            val_res = g.get("resolucion","90 min") if g else "90 min"
+            val_gan = g.get("ganador",eA) if g else eA
+            c1,c2 = st.columns(2)
+            gA = c1.text_input(f"{flag(eA)} {eA}",key=f"ga_{m_id}",value=val_gA)
+            gB = c2.text_input(f"{flag(eB)} {eB}",key=f"gb_{m_id}",value=val_gB)
+            ops = ["90 min","Prórroga","Penaltis"]
+            res = st.selectbox("Decisión",ops,index=ops.index(val_res) if val_res in ops else 0,key=f"res_{m_id}")
+            gan_pen = None
+            if res=="Penaltis":
+                idx_p = [eA,eB].index(val_gan) if val_gan in [eA,eB] else 0
+                gan_pen = st.selectbox("Ganó penaltis:",[eA,eB],index=idx_p,key=f"pen_{m_id}")
+            if gA.isdigit() and gB.isdigit():
+                gA_i,gB_i = int(gA),int(gB)
+                if gA_i>gB_i: gan,perd=eA,eB
+                elif gB_i>gA_i: gan,perd=eB,eA
+                else:
+                    if res!="Penaltis": st.warning("Empate → Penaltis"); return
+                    gan=gan_pen; perd=eB if gan==eA else eA
+                if not g or g.get("goles_A")!=gA_i or g.get("goles_B")!=gB_i or g.get("resolucion")!=res or g.get("ganador")!=gan:
+                    guardar_resultado_elim(m_id,eA,eB,gA_i,gB_i,res,gan,perd)
+            elif val_gA!="" and gA=="" and gB=="":
+                borrar_resultado_elim(m_id)
+
+    st.markdown("### Dieciseisavos"); c16=st.columns(4)
+    for i,(m_id,(c1,c2)) in enumerate(EMPAREJAMIENTOS_16VOS.items()): renderizar(m_id,pos_grupos.get(c1,c1),pos_grupos.get(c2,c2),c16[i%4])
+    st.markdown("### Octavos"); c8=st.columns(4)
+    for i,(m_id,(m1,m2)) in enumerate(CRUCES_OCTAVOS.items()): renderizar(m_id,qu_gan(m1),qu_gan(m2),c8[i%4])
+    st.markdown("### Cuartos"); c4=st.columns(4)
+    for i,(m_id,(m1,m2)) in enumerate(CRUCES_CUARTOS.items()): renderizar(m_id,qu_gan(m1),qu_gan(m2),c4[i%4])
+    st.markdown("### Semifinales"); c2=st.columns(2)
+    for i,(m_id,(m1,m2)) in enumerate(CRUCES_SEMIS.items()): renderizar(m_id,qu_gan(m1),qu_gan(m2),c2[i])
+    st.markdown("### Finales"); cf=st.columns(2)
+    for i,(m_id,(m1,m2)) in enumerate(CRUCES_FINALES.items()):
+        renderizar(m_id,qu_gan(m1.replace("_L",""),perdedor="_L" in m1),qu_gan(m2.replace("_L",""),perdedor="_L" in m2),cf[i])
+
+# ══════════════════════════════════════════
+# ADMIN - PICHICHI
+# ══════════════════════════════════════════
+elif menu == "🥇 Pichichi":
+    st.markdown('<div class="titulo-principal">🥇 Premio Pichichi</div>', unsafe_allow_html=True)
+    st.write("")
+    st.info("La selección del máximo goleador del torneo recibe +2 pts para todos los que la tienen.")
+    ops = ["Ninguno aún..."] + list(VALOR_EQUIPOS.keys())
+    idx = ops.index(pichichi) if pichichi in ops else 0
+    sel = st.selectbox("Selección del Pichichi",ops,index=idx,format_func=lambda x: f"{flag(x)} {x}" if x in VALOR_EQUIPOS else x)
+    if st.button("💾 Guardar",use_container_width=True):
+        guardar_pichichi(sel if sel!="Ninguno aún..." else None)
+        st.success("¡Guardado!")
+
+# ══════════════════════════════════════════
+# ADMIN - AJUSTE PUNTOS MANUALES
+# ══════════════════════════════════════════
+elif menu == "➕ Ajuste Puntos":
+    st.markdown('<div class="titulo-principal">➕ Ajuste Manual de Puntos</div>', unsafe_allow_html=True)
+    st.info("Aquí puedes sumar o restar puntos extra a un participante en particular (ej. por ganar mini-retos o penalizaciones).")
+    
+    if not participantes:
+        st.warning("No hay participantes registrados.")
+    else:
+        nombres = list(participantes.keys())
+        participante_sel = st.selectbox("Selecciona al jugador:", nombres)
+        puntos_actuales = ajustes_manuales.get(participante_sel, 0)
+        
+        st.write(f"Puntos extra actuales para **{participante_sel}**: `{puntos_actuales}`")
+        nuevo_valor = st.number_input("Nuevo valor total de puntos extra (usa negativos para restar):", value=puntos_actuales)
+        
+        if st.button("💾 Aplicar Ajuste", use_container_width=True):
+            guardar_ajuste_puntos(participante_sel, nuevo_valor)
+            st.success(f"Ajuste de {nuevo_valor} pts guardado para {participante_sel}.")
+            st.rerun()
+
+# --- FIN DEL ARCHIVO ---
