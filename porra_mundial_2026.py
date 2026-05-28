@@ -3,45 +3,41 @@ import pandas as pd
 from supabase import create_client
 
 # --- CONFIGURACIÓN ---
-st.set_page_config(page_title="Porra Mundial 2026 🌍", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="Porra Mundial 2026", layout="wide", initial_sidebar_state="collapsed")
 
 # CSS personalizado global
 st.markdown("""
 <style>
-    [data-testid="stHeader"] { display: none !important; }
-    [data-testid="stSidebar"] { display: none !important; }
-    footer { display: none !important; }
-    
+    [data-testid="stHeader"], [data-testid="stSidebar"], footer { display: none !important; }
     .stApp, .stMarkdown, p, label { color: #f0f2f6 !important; }
     .main { background-color: #0e1117; }
     .stApp { background: linear-gradient(135deg, #0e1117 0%, #1a1f2e 100%); }
     
-    /* ELIMINAR EL ESPACIO GIGANTE DE ARRIBA */
-    [data-testid="block-container"] { max-width: 650px; margin: 0 auto; padding-top: 0rem !important; padding-bottom: 2rem; }
+    /* Eliminar el espacio gigante de arriba */
+    [data-testid="block-container"] { max-width: 600px; margin: 0 auto; padding-top: 1rem !important; padding-bottom: 3rem; }
     
     /* Botones dorados y letra negra siempre */
     button[kind="secondary"], button[kind="primary"], div.stButton > button {
-        background-color: #FFD700 !important; border: 2px solid #B8860B !important; border-radius: 8px !important; margin-bottom: 0px;
+        background-color: #FFD700 !important; border: 2px solid #B8860B !important; border-radius: 8px !important; margin-bottom: 5px;
     }
     button[kind="secondary"] p, button[kind="primary"] p, div.stButton > button p {
         color: #000000 !important; font-weight: 900 !important; font-size: 1.1em !important; margin: 0 !important; padding: 0 !important;
     }
     button:hover { background-color: #FFA500 !important; }
     
-    /* Títulos inquebrantables (una sola línea) */
-    .titulo-principal { text-align: center; font-size: clamp(1.6em, 6vw, 2.5em); font-weight: 900; background: linear-gradient(90deg, #FFD700, #FF6B35, #FFD700); -webkit-background-clip: text; -webkit-text-fill-color: transparent; padding: 15px 0 5px 0; letter-spacing: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .titulo-landing { text-align: center; font-size: clamp(2.2em, 8vw, 4.5em); font-weight: 900; background: linear-gradient(90deg, #FFD700, #FF6B35, #FFD700); -webkit-background-clip: text; -webkit-text-fill-color: transparent; padding: 10px 0 0 0; letter-spacing: 2px; line-height: 1.1; margin-top: 10px; }
+    /* Títulos inquebrantables (una sola línea obligatoria) */
+    .titulo-principal { text-align: center; font-size: clamp(1.4em, 6vw, 2.5em); font-weight: 900; background: linear-gradient(90deg, #FFD700, #FF6B35, #FFD700); -webkit-background-clip: text; -webkit-text-fill-color: transparent; padding: 15px 0 5px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .titulo-landing { text-align: center; font-size: clamp(2.2em, 8vw, 4.5em); font-weight: 900; background: linear-gradient(90deg, #FFD700, #FF6B35, #FFD700); -webkit-background-clip: text; -webkit-text-fill-color: transparent; padding: 10px 0 0 0; line-height: 1.1; margin-top: 10px; white-space: nowrap; }
     .subtitulo { text-align: center; color: #aaa !important; font-size: clamp(0.8em, 3vw, 1.2em); margin-bottom: 20px; letter-spacing: 5px; }
     
     .card { background: linear-gradient(135deg, #1e2530, #252d3a); border: 1px solid #2d3748; border-radius: 12px; padding: 20px; margin: 10px 0; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
     .mini-card { background-color: #1a202a; border: 1px solid #333; border-radius: 8px; padding: 12px; margin-bottom: 8px; }
     
-    /* Pantalla de inicio */
-    .login-wrapper { display: flex; flex-direction: column; align-items: center; width: 100%; margin-top: 0; }
-    .login-box { background: linear-gradient(135deg, #1e2530, #252d3a); border: 1px solid #2d3748; border-radius: 12px; padding: 30px 20px; width: 100%; max-width: 400px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.5); margin-top: 20px; }
-    
-    /* Alineación vertical perfecta para las columnas de la clasificación */
-    .col-text { line-height: 38px; margin: 0; padding: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    /* Tarjeta de clasificación ALINEADA PERFECTAMENTE sin romper el móvil */
+    .clasif-tarjeta { display: flex; justify-content: space-between; align-items: center; background-color: #1e2530; padding: 12px 15px; border-radius: 8px; border: 1px solid #333; margin-bottom: 5px; }
+    .clasif-nombre { font-size: 1.15em; font-weight: bold; color: white; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .clasif-puntos { font-size: 1.3em; font-weight: 900; color: #FFD700; white-space: nowrap; text-align: right; }
+    .resultado-badge { background: #FFD700; color: #000 !important; border-radius: 6px; padding: 2px 8px; font-weight: bold; font-size: 0.9em; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -137,43 +133,44 @@ def borrar_goleador_real(jug):
 if "liga_actual" not in st.session_state: st.session_state.liga_actual = ""
 if "admin" not in st.session_state: st.session_state.admin = False
 if "menu_seleccionado" not in st.session_state: st.session_state.menu_seleccionado = "📊 Clasificación General"
+if "jugador_viendo_detalle" not in st.session_state: st.session_state.jugador_viendo_detalle = None
 
 if not st.session_state.liga_actual:
-    st.markdown('<div class="login-wrapper">', unsafe_allow_html=True)
-    
+    # La foto de Messi está AHORA SOLO EN LA PORTADA y sin el margen arriba
     st.image("https://fotografias.antena3.com/clipping/cmsimages02/2022/12/19/57017F2A-8327-404D-8997-5C37A44CDC03/messi-replica-iconica-imagen-maradona-copa-mundo_97.jpg?crop=4096,2304,x0,y0&width=1600&height=900&optimize=low&format=webply", use_container_width=True)
     st.markdown('<div class="titulo-landing">⚽ Porra Mundial 2026</div>', unsafe_allow_html=True)
     st.markdown('<div class="subtitulo">USA · CANADA · MEXICO</div>', unsafe_allow_html=True)
     
-    st.markdown('<div class="login-box">', unsafe_allow_html=True)
-    st.markdown('<h2 style="color:white; margin-top:0;">🏆 Accede a tu Porra</h2>', unsafe_allow_html=True)
-    st.markdown('<p style="color: #aaa; margin-bottom: 20px;">Introduce el código secreto para entrar a tu liga privada.</p>', unsafe_allow_html=True)
-    
-    codigo = st.text_input("Código", placeholder="Ejemplo: CUADRILLA...", label_visibility="collapsed").strip().upper()
     st.write("")
+    st.markdown('<h3 style="text-align:center; color:white; margin-bottom:10px;">🏆 Accede a tu Porra</h3>', unsafe_allow_html=True)
     
-    if st.button("🚀 ENTRAR A MI LIGA", use_container_width=True):
-        if codigo:
-            if st.session_state.admin: 
-                st.session_state.liga_actual = codigo
-                st.rerun()
-            else:
-                existe = False
-                try:
-                    check = get_supabase().table("participantes").select("nombre").eq("liga", codigo).limit(1).execute()
-                    if check.data and len(check.data) > 0: existe = True
-                    else: st.error(f"❌ La liga '{codigo}' no existe. Comprueba el código.")
-                except Exception:
-                    st.error("Hubo un problema de conexión. Inténtalo de nuevo.")
-                
-                if existe:
+    # Input centrado para PC, y se ajusta automático al móvil
+    c1, c2, c3 = st.columns([1, 6, 1])
+    with c2:
+        codigo = st.text_input("Código", placeholder="Ejemplo: CUADRILLA...", label_visibility="collapsed").strip().upper()
+        st.write("")
+        if st.button("🚀 ENTRAR A MI LIGA", use_container_width=True):
+            if codigo:
+                if st.session_state.admin: 
                     st.session_state.liga_actual = codigo
                     st.rerun()
-        else:
-            st.error("Escribe un código para entrar.")
+                else:
+                    existe = False
+                    try:
+                        check = get_supabase().table("participantes").select("nombre").eq("liga", codigo).limit(1).execute()
+                        if check.data and len(check.data) > 0: existe = True
+                        else: st.error(f"❌ La liga '{codigo}' no existe. Comprueba el código.")
+                    except Exception:
+                        st.error("Hubo un problema de conexión. Inténtalo de nuevo.")
+                    
+                    if existe:
+                        st.session_state.liga_actual = codigo
+                        st.rerun()
+            else:
+                st.error("Escribe un código para entrar.")
             
-    st.markdown("</div></div><br><br>", unsafe_allow_html=True)
-    
+    st.write("")
+    st.write("")
     if not st.session_state.admin:
         with st.expander("⚙️ Acceso Administrador"):
             pwd = st.text_input("Contraseña Admin", type="password")
@@ -284,6 +281,7 @@ with col_btn:
     if st.button("🚪 Salir", use_container_width=True): 
         st.session_state.liga_actual = ""
         st.session_state.menu_seleccionado = "📊 Clasificación General"
+        st.session_state.jugador_viendo_detalle = None
         st.rerun()
 
 st.write("")
@@ -298,6 +296,7 @@ menu = st.selectbox("👉 Elige qué quieres ver:", opciones_menu, index=idx_men
 
 if menu != st.session_state.menu_seleccionado:
     st.session_state.menu_seleccionado = menu
+    st.session_state.jugador_viendo_detalle = None
     st.rerun()
 
 if menu == "--- ZONA ADMIN ---": st.info("👆 Selecciona una herramienta de admin arriba."); st.stop()
@@ -308,78 +307,82 @@ if menu == "--- ZONA ADMIN ---": st.info("👆 Selecciona una herramienta de adm
 # ══════════════════════════════════════════
 if menu == "📊 Clasificación General":
     
-    st.markdown('<div class="titulo-principal">📊 Clasificación General</div>', unsafe_allow_html=True)
-    
-    if not participantes: st.warning("Aún no hay participantes en esta liga.")
-    else:
-        for i, row in enumerate(clasificacion_ordenada):
-            med = ["🥇","🥈","🥉"][i] if i < 3 else f"#{i+1}"
-            
-            # MAGIA DE ALINEACIÓN: Usamos columnas de Streamlit. Izquierda (Nombre), Centro (Puntos), Derecha (Botón)
-            c1, c2, c3 = st.columns([6, 3, 2])
-            
-            with c1:
-                st.markdown(f"<div class='col-text' style='font-size:1.15em; font-weight:bold; color:white;'><span style='color:#aaa; display:inline-block; width:28px;'>{med}</span>{row['Jugador']}</div>", unsafe_allow_html=True)
-            with c2:
-                st.markdown(f"<div class='col-text' style='font-size:1.3em; font-weight:900; color:#FFD700; text-align:right;'>{row['Puntos']}<span style='font-size:0.5em; color:#aaa; margin-left:3px;'>pts</span></div>", unsafe_allow_html=True)
-            with c3:
-                btn_key = f"expand_{row['Jugador']}"
-                if btn_key not in st.session_state: st.session_state[btn_key] = False
+    # --- PANTALLA DE CLASIFICACIÓN ---
+    if st.session_state.jugador_viendo_detalle is None:
+        st.markdown('<div class="titulo-principal">📊 Clasificación General</div>', unsafe_allow_html=True)
+        
+        if not participantes: st.warning("Aún no hay participantes en esta liga.")
+        else:
+            for i, row in enumerate(clasificacion_ordenada):
+                med = ["🥇","🥈","🥉"][i] if i < 3 else f"#{i+1}"
                 
-                label_btn = "🔼" if st.session_state[btn_key] else "🔽 Ver"
-                if st.button(label_btn, key=f"btn_{row['Jugador']}", use_container_width=True):
-                    st.session_state[btn_key] = not st.session_state[btn_key]
+                # HTML DE ALINEACIÓN PERFECTA: Nombre a la izquierda, puntos a la derecha, inamovibles.
+                st.markdown(f"""
+                <div class="clasif-tarjeta">
+                    <div class="clasif-nombre"><span style="color:#aaa; margin-right:8px;">{med}</span>{row['Jugador']}</div>
+                    <div class="clasif-puntos">{row['Puntos']}<span style="font-size:0.5em; color:#aaa; margin-left:4px;">pts</span></div>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                # Botón de ver ficha (debajo, para no romper el móvil)
+                if st.button(f"🔍 Ver ficha de {row['Jugador']}", key=f"btn_{row['Jugador']}", use_container_width=True):
+                    st.session_state.jugador_viendo_detalle = row['Jugador']
                     st.rerun()
-            
-            # Si el botón está pulsado, mostramos los detalles justo debajo
-            if st.session_state[btn_key]:
-                st.markdown(f"<div class='card' style='margin-top: 0; padding-top: 10px;'>", unsafe_allow_html=True)
-                st.markdown(f"**🛡️ Selecciones de {row['Jugador']}**")
-                
-                for eq in row["Equipos"]:
-                    det = detalles_globales[eq]
-                    desglose = []
-                    if det['Gr(Partidos)'] != 0: desglose.append(f"Grp: {det['Gr(Partidos)']}")
-                    if det['Gr(Goles)'] != 0: desglose.append(f"Gol: {det['Gr(Goles)']}")
-                    if det['Gr(Bono)'] != 0: desglose.append(f"Bon: {det['Gr(Bono)']}")
-                    if det['Eliminatorias'] != 0: desglose.append(f"Elim: {det['Eliminatorias']}")
-                    if det['Pichichi'] != 0: desglose.append(f"Pich: {det['Pichichi']}")
-                    str_desglose = " · ".join(desglose) if desglose else "Sin puntos"
                     
-                    st.markdown(f"""
-                    <div class="mini-card" style="display:flex; justify-content:space-between; align-items:center;">
-                        <div><span style="font-size:1.1em; color:white;">{flag(eq)} <b>{eq}</b></span><br><span style="font-size:0.8em; color:#aaa;">{str_desglose}</span></div>
-                        <div style="background-color:#FFD700; color:#000; padding:2px 8px; border-radius:6px; font-weight:bold; font-size:1.1em;">{pts_globales[eq]}</div>
-                    </div>""", unsafe_allow_html=True)
-                
-                st.markdown("<br>**📅 Sus Partidos**", unsafe_allow_html=True)
-                html_partidos = ""
-                for g, equipos in GRUPOS.items():
-                    for eA, eB in [(equipos[0],equipos[1]), (equipos[2],equipos[3]), (equipos[0],equipos[2]), (equipos[1],equipos[3]), (equipos[0],equipos[3]), (equipos[1],equipos[2])]:
-                        if eA in row["Equipos"] or eB in row["Equipos"]:
-                            fecha = obtener_fecha_grupo(eA, eB, g); k = f"{eA}_{eB}"
-                            cA, bA = ("#FFD700", "bold") if eA in row["Equipos"] else ("#aaa", "normal")
-                            cB, bB = ("#FFD700", "bold") if eB in row["Equipos"] else ("#aaa", "normal")
-                            if k in resultados_grupos:
-                                p = resultados_grupos[k]
-                                html_partidos += f"""<div class="mini-card"><div style="text-align:center; font-size:0.65em; color:#aaa; margin-bottom:4px;">🕒 {fecha} - Gr. {g}</div><div style="display:flex; justify-content:space-between; align-items:center;"><span style="color:{cA}; font-weight:{bA}; width:40%; text-align:right; font-size:0.9em;">{flag(eA)} {eA}</span> <span style="background:#252d3a; border: 1px solid #444; padding:2px 8px; border-radius:4px; color:white; font-weight:bold; font-size:0.9em;">{p['goles_A']} - {p['goles_B']}</span> <span style="color:{cB}; font-weight:{bB}; width:40%; text-align:left; font-size:0.9em;">{eB} {flag(eB)}</span></div></div>"""
-                            else:
-                                html_partidos += f"""<div class="mini-card"><div style="text-align:center; font-size:0.65em; color:#aaa; margin-bottom:4px;">🕒 {fecha} - Gr. {g}</div><div style="display:flex; justify-content:space-between; align-items:center;"><span style="color:{cA}; font-weight:{bA}; width:40%; text-align:right; font-size:0.9em;">{flag(eA)} {eA}</span> <span style="color:#aaa; font-weight:bold; font-size:0.9em;">vs</span> <span style="color:{cB}; font-weight:{bB}; width:40%; text-align:left; font-size:0.9em;">{eB} {flag(eB)}</span></div></div>"""
-                
-                for m_id, p in resultados_elim.items():
-                    eA, eB = p['equipo_A'], p['equipo_B']
-                    if eA in row["Equipos"] or eB in row["Equipos"]:
-                        fecha = FECHAS_ELIM.get(m_id, "")
-                        cA, bA = ("#FFD700", "bold") if eA in row["Equipos"] else ("#aaa", "normal")
-                        cB, bB = ("#FFD700", "bold") if eB in row["Equipos"] else ("#aaa", "normal")
-                        rex = f"<br><span style='font-size:0.7em; color:#aaa; font-weight:normal;'>{p['resolucion']}</span>" if p['resolucion'] != "90 min" else ""
-                        html_partidos += f"""<div class="mini-card"><div style="text-align:center; font-size:0.65em; color:#aaa; margin-bottom:4px;">🕒 {fecha} - {m_id}</div><div style="display:flex; justify-content:space-between; align-items:center;"><span style="color:{cA}; font-weight:{bA}; width:40%; text-align:right; font-size:0.9em;">{flag(eA)} {eA}</span> <span style="background:#252d3a; border: 1px solid #444; padding:2px 8px; border-radius:4px; color:white; font-weight:bold; text-align:center; line-height:1.2; font-size:0.9em;">{p['goles_A']} - {p['goles_B']}{rex}</span> <span style="color:{cB}; font-weight:{bB}; width:40%; text-align:left; font-size:0.9em;">{eB} {flag(eB)}</span></div></div>"""
-                
-                if html_partidos == "": st.caption("No hay partidos de estas selecciones.")
-                else: st.markdown(html_partidos, unsafe_allow_html=True)
-                st.markdown("</div>", unsafe_allow_html=True)
-                
-            st.markdown("<hr style='margin: 4px 0; border-color: #333;'>", unsafe_allow_html=True)
+                st.markdown("<div style='margin-bottom:15px;'></div>", unsafe_allow_html=True)
+
+    # --- PANTALLA DE DETALLE DEL JUGADOR ---
+    else:
+        jug_sel = st.session_state.jugador_viendo_detalle
+        row = next(item for item in clasificacion_ordenada if item["Jugador"] == jug_sel)
+        
+        if st.button("⬅️ Volver a la Clasificación", use_container_width=True):
+            st.session_state.jugador_viendo_detalle = None
+            st.rerun()
+            
+        st.markdown(f"<div class='titulo-principal'>{jug_sel}</div>", unsafe_allow_html=True)
+        
+        st.markdown(f"<h3 style='color: white;'>🛡️ Selecciones ({row['Puntos']} pts)</h3>", unsafe_allow_html=True)
+        for eq in row["Equipos"]:
+            det = detalles_globales[eq]
+            desglose = []
+            if det['Gr(Partidos)'] != 0: desglose.append(f"Grp: {det['Gr(Partidos)']}")
+            if det['Gr(Goles)'] != 0: desglose.append(f"Gol: {det['Gr(Goles)']}")
+            if det['Gr(Bono)'] != 0: desglose.append(f"Bon: {det['Gr(Bono)']}")
+            if det['Eliminatorias'] != 0: desglose.append(f"Elim: {det['Eliminatorias']}")
+            if det['Pichichi'] != 0: desglose.append(f"Pich: {det['Pichichi']}")
+            str_desglose = " · ".join(desglose) if desglose else "Sin puntos"
+            st.markdown(f"""
+            <div class="mini-card" style="display:flex; justify-content:space-between; align-items:center;">
+                <div><span style="font-size:1.1em; color:white;">{flag(eq)} <b>{eq}</b></span><br><span style="font-size:0.8em; color:#aaa;">{str_desglose}</span></div>
+                <div style="background-color:#FFD700; color:#000; padding:4px 10px; border-radius:6px; font-weight:bold; font-size:1.2em;">{pts_globales[eq]}</div>
+            </div>""", unsafe_allow_html=True)
+            
+        st.markdown("<h3 style='color: white; margin-top:20px;'>📅 Sus Partidos</h3>", unsafe_allow_html=True)
+        html_partidos = ""
+        for g, equipos in GRUPOS.items():
+            for eA, eB in [(equipos[0],equipos[1]), (equipos[2],equipos[3]), (equipos[0],equipos[2]), (equipos[1],equipos[3]), (equipos[0],equipos[3]), (equipos[1],equipos[2])]:
+                if eA in row["Equipos"] or eB in row["Equipos"]:
+                    fecha = obtener_fecha_grupo(eA, eB, g); k = f"{eA}_{eB}"
+                    cA, bA = ("#FFD700", "bold") if eA in row["Equipos"] else ("#aaa", "normal")
+                    cB, bB = ("#FFD700", "bold") if eB in row["Equipos"] else ("#aaa", "normal")
+                    if k in resultados_grupos:
+                        p = resultados_grupos[k]
+                        html_partidos += f"""<div class="mini-card"><div style="text-align:center; font-size:0.65em; color:#aaa; margin-bottom:6px;">🕒 {fecha} - Gr. {g}</div><div style="display:flex; justify-content:space-between; align-items:center;"><span style="color:{cA}; font-weight:{bA}; width:40%; text-align:right; font-size:0.9em;">{flag(eA)} {eA}</span> <span style="background:#252d3a; border: 1px solid #444; padding:3px 10px; border-radius:6px; color:white; font-weight:bold;">{p['goles_A']} - {p['goles_B']}</span> <span style="color:{cB}; font-weight:{bB}; width:40%; text-align:left; font-size:0.9em;">{eB} {flag(eB)}</span></div></div>"""
+                    else:
+                        html_partidos += f"""<div class="mini-card"><div style="text-align:center; font-size:0.65em; color:#aaa; margin-bottom:6px;">🕒 {fecha} - Gr. {g}</div><div style="display:flex; justify-content:space-between; align-items:center;"><span style="color:{cA}; font-weight:{bA}; width:40%; text-align:right; font-size:0.9em;">{flag(eA)} {eA}</span> <span style="color:#aaa; font-weight:bold;">vs</span> <span style="color:{cB}; font-weight:{bB}; width:40%; text-align:left; font-size:0.9em;">{eB} {flag(eB)}</span></div></div>"""
+        
+        for m_id, p in resultados_elim.items():
+            eA, eB = p['equipo_A'], p['equipo_B']
+            if eA in row["Equipos"] or eB in row["Equipos"]:
+                fecha = FECHAS_ELIM.get(m_id, "")
+                cA, bA = ("#FFD700", "bold") if eA in row["Equipos"] else ("#aaa", "normal")
+                cB, bB = ("#FFD700", "bold") if eB in row["Equipos"] else ("#aaa", "normal")
+                rex = f"<br><span style='font-size:0.7em; color:#aaa; font-weight:normal;'>{p['resolucion']}</span>" if p['resolucion'] != "90 min" else ""
+                html_partidos += f"""<div class="mini-card"><div style="text-align:center; font-size:0.65em; color:#aaa; margin-bottom:6px;">🕒 {fecha} - {m_id}</div><div style="display:flex; justify-content:space-between; align-items:center;"><span style="color:{cA}; font-weight:{bA}; width:40%; text-align:right; font-size:0.9em;">{flag(eA)} {eA}</span> <span style="background:#252d3a; border: 1px solid #444; padding:3px 10px; border-radius:6px; color:white; font-weight:bold; text-align:center; line-height:1.2;">{p['goles_A']} - {p['goles_B']}{rex}</span> <span style="color:{cB}; font-weight:{bB}; width:40%; text-align:left; font-size:0.9em;">{eB} {flag(eB)}</span></div></div>"""
+        
+        if html_partidos == "": st.caption("No hay partidos de estas selecciones.")
+        else: st.markdown(html_partidos, unsafe_allow_html=True)
 
 
 elif menu == "🔥 Tabla de Goleadores":
@@ -427,7 +430,7 @@ elif menu == "📅 Resultados Partidos":
 
 
 elif menu == "⚽ Cuadro Eliminatorias":
-    st.markdown('<div class="titulo-principal">⚽ Cuadro de Eliminatorias</div>', unsafe_allow_html=True)
+    st.markdown('<div class="titulo-principal">⚽ Cuadro Eliminatorias</div>', unsafe_allow_html=True)
     def qu_gan(m_id, perdedor=False): return resultados_elim[m_id]['perdedor' if perdedor else 'ganador'] if m_id in resultados_elim else f"❓"
     def mostrar_cruce(m_id, eA, eB):
         d = resultados_elim.get(m_id); fA, fB = (flag(eA) if eA in VALOR_EQUIPOS else "❓"), (flag(eB) if eB in VALOR_EQUIPOS else "❓")
@@ -512,7 +515,7 @@ elif menu == "⚔️ Resultados Elim.":
     cf=st.columns(2); [renderizar(m_id,qu_gan(m1.replace("_L",""),perdedor="_L" in m1),qu_gan(m2.replace("_L",""),perdedor="_L" in m2),cf[i]) for i,(m_id,(m1,m2)) in enumerate(CRUCES_FINALES.items())]
 
 elif menu == "🥇 Pichichi Equipo":
-    sel = st.selectbox("Selección Máxima Goleadora (Da puntos extra)", ["Ninguno aún..."] + list(VALOR_EQUIPOS.keys()), index=(["Ninguno aún..."] + list(VALOR_EQUIPOS.keys())).index(pichichi) if pichichi else 0)
+    sel = st.selectbox("Selección Máxima Goleadora", ["Ninguno aún..."] + list(VALOR_EQUIPOS.keys()), index=(["Ninguno aún..."] + list(VALOR_EQUIPOS.keys())).index(pichichi) if pichichi else 0)
     if st.button("💾 Guardar",use_container_width=True): guardar_pichichi(sel if sel!="Ninguno aún..." else None); st.success("Guardado")
 
 elif menu == "🎯 Pichichis Jugadores":
