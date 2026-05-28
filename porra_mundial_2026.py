@@ -19,6 +19,27 @@ st.markdown("""
     .main { background-color: #0e1117; }
     .stApp { background: linear-gradient(135deg, #0e1117 0%, #1a1f2e 100%); }
     
+    /* =========================================
+       BOTONES: FORZAR LETRA OSCURA Y VISIBLE
+       ========================================= */
+    div.stButton > button, 
+    div.stButton > button p, 
+    div[data-testid="stPopover"] > button, 
+    div[data-testid="stPopover"] > button p {
+        color: #111111 !important;
+        font-weight: 900 !important;
+    }
+    div.stButton > button, div[data-testid="stPopover"] > button {
+        background-color: #f0f2f6 !important;
+        border: 2px solid #ccc !important;
+        border-radius: 8px !important;
+    }
+    div.stButton > button:hover, div[data-testid="stPopover"] > button:hover {
+        background-color: #FFD700 !important;
+        border-color: #FFD700 !important;
+        color: #000000 !important;
+    }
+    
     .titulo-principal {
         text-align: center;
         font-size: 2.5em;
@@ -37,7 +58,7 @@ st.markdown("""
         background: linear-gradient(90deg, #FFD700, #FF6B35, #FFD700);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
-        padding: 40px 0 10px 0;
+        padding: 10px 0 10px 0;
         letter-spacing: 2px;
     }
     .subtitulo {
@@ -276,43 +297,52 @@ if "admin" not in st.session_state:
 # PANTALLA PRINCIPAL (LANDING PAGE)
 # ══════════════════════════════════════════
 if not st.session_state.liga_actual:
+    # Esto centra el contenido absoluto en medio de la pantalla
+    st.markdown("""
+        <style>
+        .block-container {
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: center !important;
+            min-height: 85vh !important;
+            max-width: 600px !important;
+            padding-top: 0 !important;
+        }
+        </style>
+    """, unsafe_allow_html=True)
+    
     st.markdown('<div class="titulo-landing">⚽ Porra Mundial 2026</div>', unsafe_allow_html=True)
     st.markdown('<div class="subtitulo">USA · CANADA · MEXICO</div>', unsafe_allow_html=True)
     
-    st.write("")
+    st.markdown("""
+    <div style="text-align: center; margin-bottom: 20px;">
+        <h2 style="color:white; margin-top:0;">🏆 Accede a tu Porra</h2>
+        <p style="color: #aaa; margin-bottom: 5px;">Introduce la palabra secreta de tu grupo para entrar a tu liga privada.</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    codigo = st.text_input("Código", placeholder="Ejemplo: CUADRILLA, OFICINA...", label_visibility="collapsed").strip().upper()
     st.write("")
     
-    c1, c2, c3 = st.columns([1, 2, 1])
-    with c2:
-        st.markdown("""
-        <div class="card" style="text-align: center; padding: 40px;">
-            <h2 style="color:white;">🏆 Accede a tu Porra</h2>
-            <p style="color: #aaa; margin-bottom: 20px;">Introduce la palabra secreta de tu grupo de amigos o trabajo para entrar a tu liga privada.</p>
-        """, unsafe_allow_html=True)
-        
-        codigo = st.text_input("", placeholder="Ejemplo: CUADRILLA, OFICINA, FAMILIA...").strip().upper()
-        
-        if st.button("🚀 ENTRAR A MI LIGA", use_container_width=True):
-            if codigo:
-                if st.session_state.admin:
-                    st.session_state.liga_actual = codigo
-                    st.rerun()
-                else:
-                    try:
-                        sb = get_supabase()
-                        check = sb.table("participantes").select("nombre").eq("liga", codigo).limit(1).execute()
-                        if check.data and len(check.data) > 0:
-                            st.session_state.liga_actual = codigo
-                            st.rerun()
-                        else:
-                            st.error(f"❌ La liga '{codigo}' no existe. Comprueba que esté bien escrito o pide al administrador que te añada.")
-                    except Exception:
-                        st.error("Hubo un problema al comprobar la liga. Inténtalo de nuevo.")
+    if st.button("🚀 ENTRAR A MI LIGA", use_container_width=True):
+        if codigo:
+            if st.session_state.admin:
+                st.session_state.liga_actual = codigo
+                st.rerun()
             else:
-                st.error("Por favor, escribe un código para entrar.")
-                
-        st.markdown("</div>", unsafe_allow_html=True)
-    
+                try:
+                    sb = get_supabase()
+                    check = sb.table("participantes").select("nombre").eq("liga", codigo).limit(1).execute()
+                    if check.data and len(check.data) > 0:
+                        st.session_state.liga_actual = codigo
+                        st.rerun()
+                    else:
+                        st.error(f"❌ La liga '{codigo}' no existe. Comprueba que esté bien escrita o pide al administrador que te añada.")
+                except Exception:
+                    st.error("Hubo un problema al comprobar la liga. Inténtalo de nuevo.")
+        else:
+            st.error("Por favor, escribe un código para entrar.")
+            
     st.write("")
     st.write("")
     st.write("")
