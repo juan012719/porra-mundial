@@ -28,7 +28,8 @@ st.markdown("""
     }
     .titulo-landing {
         text-align: center;
-        font-size: 4.5em;
+        /* Hacemos el texto elástico: más pequeño en móvil y grande en PC */
+        font-size: clamp(2.5em, 8vw, 4.5em);
         font-weight: 900;
         background: linear-gradient(90deg, #FFD700, #FF6B35, #FFD700);
         -webkit-background-clip: text;
@@ -39,7 +40,7 @@ st.markdown("""
     .subtitulo {
         text-align: center;
         color: #888;
-        font-size: 1.2em;
+        font-size: clamp(0.9em, 3vw, 1.2em);
         margin-bottom: 30px;
         letter-spacing: 5px;
     }
@@ -429,7 +430,7 @@ col_title, col_btn = st.columns([3, 1])
 with col_title:
     st.markdown(f"<h3 style='color:#FFD700; margin:0; padding-top:5px;'>🏆 Liga: {liga_actual}</h3>", unsafe_allow_html=True)
 with col_btn:
-    if st.button("🚪 Salir / Cambiar", use_container_width=True):
+    if st.button("🚪 Salir", use_container_width=True):
         st.session_state.liga_actual = ""
         st.rerun()
 
@@ -465,8 +466,9 @@ if menu == "📊 Clasificación General":
     st.write("")
     
     if not participantes:
-        st.warning(f"Aún no hay participantes registrados en la liga '{liga_actual}'.")
+        st.warning(f"Aún no hay participantes registrados en la liga '{liga_actual}'. Si eres administrador, usa el menú para añadirlos.")
     else:
+        st.caption(f"🏆 Mostrando resultados para la liga: **{liga_actual}**")
         pts, detalles = calcular_puntos(df_tabla)
         lista_clasif = []
         for a, eqs in participantes.items():
@@ -699,19 +701,22 @@ elif menu == "⚽ Cuadro Eliminatorias":
 elif menu == "👥 Participantes (Liga actual)":
     st.markdown('<div class="titulo-principal">👥 Gestión de Participantes</div>', unsafe_allow_html=True)
     st.info(f"Estás añadiendo jugadores a la liga: **{liga_actual}**")
-    with st.form("form_amigos"):
-        nombre = st.text_input("Nombre del participante")
-        equipos_sel = st.multiselect("Selecciones (máx 30 pts)", list(VALOR_EQUIPOS.keys()), format_func=lambda x: f"{flag(x)} {x} ({VALOR_EQUIPOS[x]} pts)")
-        coste = sum(VALOR_EQUIPOS[e] for e in equipos_sel)
-        st.markdown(f"Coste: <b style='color:{'green' if coste <= 30 else 'red'}'>{coste} / 30 pts</b>", unsafe_allow_html=True)
-        if st.form_submit_button("✅ Añadir / Actualizar", use_container_width=True):
-            if not nombre: st.error("Falta el nombre.")
-            elif coste > 30: st.error("Demasiados puntos.")
-            else: 
-                participantes[nombre] = equipos_sel
-                guardar_participantes(liga_actual, participantes)
-                st.success(f"✅ Guardado en {liga_actual}")
-                st.rerun()
+    
+    # ATENCIÓN: Lo he sacado del "form" para que se actualicen los puntos en vivo al usar el móvil
+    nombre = st.text_input("Nombre del participante")
+    equipos_sel = st.multiselect("Selecciones (máx 30 pts)", list(VALOR_EQUIPOS.keys()), format_func=lambda x: f"{flag(x)} {x} ({VALOR_EQUIPOS[x]} pts)")
+    coste = sum(VALOR_EQUIPOS[e] for e in equipos_sel)
+    
+    st.markdown(f"Coste: <b style='color:{'#90EE90' if coste <= 30 else '#FF6347'}'>{coste} / 30 pts</b>", unsafe_allow_html=True)
+    
+    if st.button("✅ Añadir / Actualizar", use_container_width=True):
+        if not nombre: st.error("Falta el nombre.")
+        elif coste > 30: st.error("Demasiados puntos.")
+        else: 
+            participantes[nombre] = equipos_sel
+            guardar_participantes(liga_actual, participantes)
+            st.success(f"✅ Guardado en {liga_actual}")
+            st.rerun()
     
     if participantes:
         st.divider()
