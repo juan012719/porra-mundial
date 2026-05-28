@@ -217,10 +217,10 @@ def guardar_ajuste_puntos(nombre, puntos_extra):
         cargar_ajustes_puntos.clear()
     except Exception: pass
 
-def guardar_goleador_real(jugador, equipo, goles):
+def guardar_goleador_real(jugador, equipo, goles, goles_penalti=0):
     try:
         sb = get_supabase()
-        sb.table("pichichis_reales").upsert({"jugador": jugador.title(), "equipo": equipo, "goles": goles}).execute()
+        sb.table("pichichis_reales").upsert({"jugador": jugador.title(), "equipo": equipo, "goles": goles, "goles_penalti": goles_penalti}).execute()
         cargar_pichichis_reales.clear()
     except Exception: pass
 
@@ -427,6 +427,9 @@ elif menu == "🔥 Tabla de Goleadores":
     else:
         for i, j in enumerate(goleadores_reales):
             med = "🥇" if i == 0 else "🥈" if i == 1 else "🥉" if i == 2 else f"#{i+1}"
+            penaltis = j.get('goles_penalti', 0)
+            texto_penalti = f"<br><span style='font-size:0.55em; color:#aaa; font-weight:normal;'>({penaltis} de penalti)</span>" if penaltis > 0 else ""
+            
             st.markdown(f"""
             <div class="card" style="display:flex; justify-content:space-between; align-items:center; padding:15px;">
                 <div style="font-size:1.2em; color:white;">
@@ -436,10 +439,11 @@ elif menu == "🔥 Tabla de Goleadores":
                     </span>
                 </div>
                 <div style="font-size:1.5em; font-weight:bold; color:#FFD700; min-width:80px; text-align:right;">
-                    {j['goles']} ⚽
+                    {j['goles']} ⚽{texto_penalti}
                 </div>
             </div>
             """, unsafe_allow_html=True)
+
 # ══════════════════════════════════════════
 # TABLA DE GRUPOS
 # ══════════════════════════════════════════
@@ -536,7 +540,7 @@ elif menu == "⚽ Cuadro Eliminatorias":
         with cf[i]: mostrar_cruce(m_id, qu_gan(m1.replace("_L",""),perdedor="_L" in m1), qu_gan(m2.replace("_L",""),perdedor="_L" in m2))
 
 # ══════════════════════════════════════════
-# ADMIN - PARTICIPANTES / GRUPOS / ELIMINATORIAS (Abreviados para el bloque)
+# ADMIN - PARTICIPANTES
 # ══════════════════════════════════════════
 elif menu == "👥 Participantes":
     with st.form("form_amigos"):
@@ -554,6 +558,9 @@ elif menu == "👥 Participantes":
             c1.markdown(f"**{nom}** ({sum(VALOR_EQUIPOS[e] for e in eqs)} pts) {' '.join([flag(e) for e in eqs])}")
             if c2.button("🗑️", key=f"del_{nom}"): del participantes[nom]; guardar_participantes(participantes); st.rerun()
 
+# ══════════════════════════════════════════
+# ADMIN - RESULTADOS GRUPOS
+# ══════════════════════════════════════════
 elif menu == "🔧 Resultados Grupos":
     cols = st.columns(3)
     for idx,(grupo,eq) in enumerate(GRUPOS.items()):
@@ -569,6 +576,9 @@ elif menu == "🔧 Resultados Grupos":
                     guardar_resultado_grupo(key,eA,eB,int(gA),int(gB))
                 elif g.get("goles_A","")!="" and gA=="" and gB=="": borrar_resultado_grupo(key)
 
+# ══════════════════════════════════════════
+# ADMIN - RESULTADOS ELIMINATORIAS
+# ══════════════════════════════════════════
 elif menu == "⚔️ Resultados Eliminatorias":
     def renderizar(m_id, eA, eB, col):
         with col:
@@ -590,7 +600,12 @@ elif menu == "⚔️ Resultados Eliminatorias":
                 if not g or g.get("goles_A")!=gA_i or g.get("goles_B")!=gB_i or g.get("resolucion")!=res or g.get("ganador")!=gan:
                     guardar_resultado_elim(m_id,eA,eB,gA_i,gB_i,res,gan,perd)
             elif g.get("goles_A","")!="" and gA=="" and gB=="": borrar_resultado_elim(m_id)
-    # Se omiten por brevedad las llamadas a renderizar de las fases...
+            
+    c16=st.columns(4); [renderizar(m_id,pos_grupos.get(c1,c1),pos_grupos.get(c2,c2),c16[i%4]) for i,(m_id,(c1,c2)) in enumerate(EMPAREJAMIENTOS_16VOS.items())]
+    c8=st.columns(4); [renderizar(m_id,qu_gan(m1),qu_gan(m2),c8[i%4]) for i,(m_id,(m1,m2)) in enumerate(CRUCES_OCTAVOS.items())]
+    c4=st.columns(4); [renderizar(m_id,qu_gan(m1),qu_gan(m2),c4[i%4]) for i,(m_id,(m1,m2)) in enumerate(CRUCES_CUARTOS.items())]
+    c2=st.columns(2); [renderizar(m_id,qu_gan(m1),qu_gan(m2),c2[i]) for i,(m_id,(m1,m2)) in enumerate(CRUCES_SEMIS.items())]
+    cf=st.columns(2); [renderizar(m_id,qu_gan(m1.replace("_L",""),perdedor="_L" in m1),qu_gan(m2.replace("_L",""),perdedor="_L" in m2),cf[i]) for i,(m_id,(m1,m2)) in enumerate(CRUCES_FINALES.items())]
 
 # ══════════════════════════════════════════
 # ADMIN - GOLES DE EQUIPOS Y JUGADORES
@@ -605,16 +620,20 @@ elif menu == "🎯 Añadir Goles a Jugadores":
     st.info("Escribe el nombre del jugador que ha metido gol y su selección. Se actualizará en tiempo real en la tabla pública.")
     
     with st.form("form_pichichi"):
-        c1, c2, c3 = st.columns([2,2,1])
+        c1, c2, c3, c4 = st.columns([2,2,1,1])
         equipo = c1.selectbox("Selección", list(VALOR_EQUIPOS.keys()))
-        jugador = c2.text_input("Nombre del Jugador (Ej: Lamine Yamal)")
-        goles = c3.number_input("Goles totales", min_value=1, value=1)
+        jugador = c2.text_input("Nombre (Ej: Morata)")
+        goles = c3.number_input("Total goles", min_value=1, value=1)
+        goles_penalti = c4.number_input("De penalti", min_value=0, value=0)
         
-        if st.form_submit_button("⚽ Añadir / Actualizar Jugador", use_container_width=True):
+        if st.form_submit_button("⚽ Añadir / Actualizar", use_container_width=True):
             if jugador:
-                guardar_goleador_real(jugador, equipo, goles)
-                st.success(f"Guardado: {jugador} ({equipo}) - {goles} goles")
-                st.rerun()
+                if goles_penalti > goles:
+                    st.error("Los goles de penalti no pueden ser mayores que los totales.")
+                else:
+                    guardar_goleador_real(jugador, equipo, goles, goles_penalti)
+                    st.success(f"Guardado: {jugador} ({equipo}) - {goles} goles ({goles_penalti} penalti)")
+                    st.rerun()
             else:
                 st.error("Escribe un nombre.")
                 
@@ -623,7 +642,8 @@ elif menu == "🎯 Añadir Goles a Jugadores":
         st.markdown("### Jugadores registrados")
         for j in goleadores_reales:
             col1, col2 = st.columns([5,1])
-            col1.markdown(f"{flag(j['equipo'])} **{j['jugador']}** - `{j['goles']} goles`")
+            pen_text = f" (de penalti: {j.get('goles_penalti', 0)})" if j.get('goles_penalti', 0) > 0 else ""
+            col1.markdown(f"{flag(j['equipo'])} **{j['jugador']}** - `{j['goles']} goles` <span style='color:#aaa; font-size:0.8em;'>{pen_text}</span>", unsafe_allow_html=True)
             if col2.button("🗑️", key=f"del_gol_{j['jugador']}"):
                 borrar_goleador_real(j['jugador'])
                 st.rerun()
