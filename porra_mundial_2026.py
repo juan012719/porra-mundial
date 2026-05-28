@@ -8,9 +8,10 @@ st.set_page_config(page_title="Porra Mundial 2026 🌍", layout="wide", initial_
 # CSS personalizado
 st.markdown("""
 <style>
-    /* Ocultar el menú superior (Header) y el footer de Streamlit para que parezca una app nativa */
-    [data-testid="stHeader"] { display: none; }
-    footer { display: none; }
+    /* Ocultar ABSOLUTAMENTE TODO el rastro de Streamlit para que parezca una app nativa */
+    [data-testid="stHeader"] { display: none !important; }
+    [data-testid="stSidebar"] { display: none !important; }
+    footer { display: none !important; }
     
     .main { background-color: #0e1117; }
     .stApp { background: linear-gradient(135deg, #0e1117 0%, #1a1f2e 100%); }
@@ -65,8 +66,6 @@ st.markdown("""
         font-weight: bold;
         font-size: 0.9em;
     }
-    div[data-testid="stSidebarNav"] { display: none; }
-    .stRadio > label { font-weight: 600; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -268,10 +267,11 @@ if "liga_actual" not in st.session_state:
 if "admin" not in st.session_state:
     st.session_state.admin = False
 
-# --- PANTALLA PRINCIPAL (LANDING PAGE) ---
+
+# ══════════════════════════════════════════
+# PANTALLA PRINCIPAL (LANDING PAGE)
+# ══════════════════════════════════════════
 if not st.session_state.liga_actual:
-    st.markdown("""<style>section[data-testid="stSidebar"] {display: none;}</style>""", unsafe_allow_html=True)
-    
     st.markdown('<div class="titulo-landing">⚽ Porra Mundial 2026</div>', unsafe_allow_html=True)
     st.markdown('<div class="subtitulo">USA · CANADA · MEXICO</div>', unsafe_allow_html=True)
     
@@ -296,12 +296,29 @@ if not st.session_state.liga_actual:
                 st.error("Por favor, escribe un código para entrar.")
                 
         st.markdown("</div>", unsafe_allow_html=True)
-        
+    
+    st.write("")
+    st.write("")
+    st.write("")
+    
+    # Login Admin escondido abajo del todo en la landing (opcional si quieres loguearte antes)
+    if not st.session_state.admin:
+        with st.expander("⚙️ Acceso Administrador"):
+            pwd = st.text_input("Contraseña Admin", type="password", key="pwd_land")
+            if st.button("Entrar Admin"):
+                if pwd == ADMIN_PASSWORD:
+                    st.session_state.admin = True; st.rerun()
+                else:
+                    st.error("Clave incorrecta")
+    else:
+        if st.button("🔴 Cerrar sesión Administrador"):
+            st.session_state.admin = False; st.rerun()
+            
     st.stop()
 
 
 # ══════════════════════════════════════════
-# EL RESTO DE LA APP (Si ya han entrado en una liga)
+# EL RESTO DE LA APP (DENTRO DE LA LIGA)
 # ══════════════════════════════════════════
 liga_actual = st.session_state.liga_actual
 
@@ -390,52 +407,43 @@ def calcular_puntos(df_tabla):
 df_tabla   = obtener_tabla_grupos()
 pos_grupos = obtener_clasificados(df_tabla)
 
+
 # ══════════════════════════════════════════
-# SIDEBAR (SOLO PARA ADMIN Y SALIR DE LIGA)
+# CABECERA Y MENÚ SUPERIOR (NUEVO DISEÑO APP)
 # ══════════════════════════════════════════
-with st.sidebar:
-    st.markdown('<div class="titulo-principal">⚽ Porra<br>Mundial 2026</div>', unsafe_allow_html=True)
-    st.markdown('<div class="subtitulo">USA · CANADA · MEXICO</div>', unsafe_allow_html=True)
-    
-    st.markdown("---")
-    st.success(f"🏆 Liga actual: **{liga_actual}**")
-    if st.button("🚪 Cambiar de Liga", use_container_width=True):
+col_title, col_btn = st.columns([3, 1])
+with col_title:
+    st.markdown(f"<h3 style='color:#FFD700; margin:0; padding-top:5px;'>🏆 Liga: {liga_actual}</h3>", unsafe_allow_html=True)
+with col_btn:
+    if st.button("🚪 Salir / Cambiar", use_container_width=True):
         st.session_state.liga_actual = ""
-        st.session_state.admin = False
         st.rerun()
-    st.markdown("---")
 
-    with st.expander("🔐 Acceso Admin"):
-        if not st.session_state.admin:
-            pwd = st.text_input("Contraseña", type="password", key="pwd_input")
-            if st.button("Entrar", use_container_width=True):
-                if pwd == ADMIN_PASSWORD:
-                    st.session_state.admin = True; st.rerun()
-                else:
-                    st.error("Contraseña incorrecta")
-        else:
-            st.success("✅ Admin activo")
-            if st.button("Cerrar sesión", use_container_width=True):
-                st.session_state.admin = False; st.rerun()
+st.write("") # Espacio
 
-    if st.session_state.admin:
-        st.divider()
-        st.markdown("### 🛠️ MENÚ ADMINISTRADOR")
-        menu_admin_sel = st.radio("", ["(Cerrar Menú Admin)", "👥 Participantes (Liga)", "🔧 Resultados Grupos (Global)", "⚔️ Resultados Elim. (Global)", "🥇 Goles Equipo (Global)", "🎯 Goles Jugadores (Global)", "➕ Ajuste Puntos (Liga)"])
-    else:
-        menu_admin_sel = "(Cerrar Menú Admin)"
+# Menú principal desplegable
+opciones_menu = ["📊 Clasificación General", "🔥 Tabla de Goleadores", "🏆 Tabla de Grupos", "📅 Resultados Partidos", "⚽ Cuadro Eliminatorias"]
 
-# ══════════════════════════════════════════
-# MENÚ PÚBLICO EN PANTALLA PRINCIPAL
-# ══════════════════════════════════════════
-if menu_admin_sel != "(Cerrar Menú Admin)":
-    menu = menu_admin_sel
-else:
-    menu = st.selectbox("👉 Elige qué quieres ver:", ["📊 Clasificación General", "🔥 Tabla de Goleadores", "🏆 Tabla de Grupos", "📅 Resultados Partidos", "⚽ Cuadro Eliminatorias"])
-    st.write("")
+if st.session_state.admin:
+    opciones_menu += [
+        "--- ZONA ADMINISTRADOR ---",
+        "👥 Participantes (Liga actual)", 
+        "🔧 Resultados Grupos (Global)", 
+        "⚔️ Resultados Elim. (Global)", 
+        "🥇 Goles Equipo (Global)", 
+        "🎯 Goles Jugadores (Global)", 
+        "➕ Ajuste Puntos (Liga actual)"
+    ]
+
+menu = st.selectbox("👉 Elige qué quieres ver:", opciones_menu)
+
+if menu == "--- ZONA ADMINISTRADOR ---":
+    st.info("👆 Por favor, selecciona una herramienta de administrador en el menú desplegable.")
+    st.stop()
+
 
 # ══════════════════════════════════════════
-# CLASIFICACIÓN GENERAL (DEPENDIENTE DE LIGA)
+# CLASIFICACIÓN GENERAL
 # ══════════════════════════════════════════
 if menu == "📊 Clasificación General":
     st.image("https://upload.wikimedia.org/wikipedia/commons/b/b4/Lionel-Messi-Argentina-2022.jpg", use_container_width=True)
@@ -443,9 +451,8 @@ if menu == "📊 Clasificación General":
     st.write("")
     
     if not participantes:
-        st.warning(f"Aún no hay participantes registrados en la liga '{liga_actual}'. Si eres el administrador, abre el menú de la izquierda para añadirlos.")
+        st.warning(f"Aún no hay participantes registrados en la liga '{liga_actual}'.")
     else:
-        st.caption(f"🏆 Mostrando resultados para la liga: **{liga_actual}**")
         pts, detalles = calcular_puntos(df_tabla)
         lista_clasif = []
         for a, eqs in participantes.items():
@@ -461,6 +468,7 @@ if menu == "📊 Clasificación General":
             nombres_str = ", ".join(row["Equipos"])
             extra_badge = f'<span style="font-size:0.5em; background:rgba(255,255,255,0.2); padding:2px 5px; border-radius:4px; margin-left:10px;">Ajuste: {row["Extra"]} pts</span>' if row["Extra"] != 0 else ""
 
+            # Tarjeta principal del jugador
             st.markdown(f'<div class="card" style="margin-bottom: 10px;"><div style="display:flex; justify-content:space-between; align-items:center;"><div><span style="font-size:1.5em">{med}</span><span style="font-size:1.3em; font-weight:700; margin-left:10px; color:white;">{row["Jugador"]}</span>{extra_badge}<br><small style="color:#888">{equipos_str} {nombres_str}</small></div><div style="font-size:2em; font-weight:900; color:#FFD700">{row["Puntos"]}<span style="font-size:0.4em; color:#888"> pts</span></div></div></div>', unsafe_allow_html=True)
             
             # --- POPOVERS ESTILIZADOS ---
@@ -478,7 +486,6 @@ if menu == "📊 Clasificación General":
                     if det['Pichichi'] != 0: desglose.append(f"Pichichi: {det['Pichichi']}")
                     str_desglose = " · ".join(desglose) if desglose else "Aún sin puntos"
                     
-                    # Mini tarjeta para cada selección dentro del popover
                     st.markdown(f"""
                     <div class="mini-card" style="display:flex; justify-content:space-between; align-items:center;">
                         <div>
@@ -503,7 +510,6 @@ if menu == "📊 Clasificación General":
                             col_A, bold_A = ("#FFD700", "bold") if eA in row["Equipos"] else ("#888", "normal")
                             col_B, bold_B = ("#FFD700", "bold") if eB in row["Equipos"] else ("#888", "normal")
                             
-                            # Mini tarjeta de partido dentro del popover
                             if key in resultados_grupos:
                                 p = resultados_grupos[key]
                                 html_partidos += f"""
@@ -550,7 +556,7 @@ if menu == "📊 Clasificación General":
             st.markdown("<div style='margin-bottom: 25px;'></div>", unsafe_allow_html=True)
 
 # ══════════════════════════════════════════
-# TOP GOLEADORES (GLOBAL)
+# TOP GOLEADORES
 # ══════════════════════════════════════════
 elif menu == "🔥 Tabla de Goleadores":
     st.markdown('<div class="titulo-principal">🔥 Top Pichichis</div>', unsafe_allow_html=True)
@@ -578,7 +584,7 @@ elif menu == "🔥 Tabla de Goleadores":
             """, unsafe_allow_html=True)
 
 # ══════════════════════════════════════════
-# TABLA DE GRUPOS (GLOBAL)
+# TABLA DE GRUPOS
 # ══════════════════════════════════════════
 elif menu == "🏆 Tabla de Grupos":
     st.markdown('<div class="titulo-principal">🏆 Tabla de Grupos</div>', unsafe_allow_html=True)
@@ -598,7 +604,7 @@ elif menu == "🏆 Tabla de Grupos":
             st.dataframe(df_g[['','Equipo','PJ','Pts','GF','GC','Dif']].style.apply(hl,axis=1), use_container_width=True, hide_index=False)
 
 # ══════════════════════════════════════════
-# RESULTADOS PARTIDOS PÚBLICOS (GLOBAL)
+# RESULTADOS PARTIDOS PÚBLICOS
 # ══════════════════════════════════════════
 elif menu == "📅 Resultados Partidos":
     st.markdown('<div class="titulo-principal">📅 Resultados de los Partidos</div>', unsafe_allow_html=True)
@@ -639,7 +645,7 @@ elif menu == "📅 Resultados Partidos":
                 </div>""", unsafe_allow_html=True)
 
 # ══════════════════════════════════════════
-# CUADRO ELIMINATORIAS (GLOBAL)
+# CUADRO ELIMINATORIAS
 # ══════════════════════════════════════════
 elif menu == "⚽ Cuadro Eliminatorias":
     st.markdown('<div class="titulo-principal">⚽ Cuadro de Eliminatorias</div>', unsafe_allow_html=True)
@@ -672,8 +678,9 @@ elif menu == "⚽ Cuadro Eliminatorias":
     for i,(m_id,(m1,m2)) in enumerate(CRUCES_FINALES.items()):
         with cf[i]: mostrar_cruce(m_id, qu_gan(m1.replace("_L",""),perdedor="_L" in m1), qu_gan(m2.replace("_L",""),perdedor="_L" in m2))
 
+
 # ══════════════════════════════════════════
-# ADMIN - PARTICIPANTES (LOCAL POR LIGA)
+# ZONA ADMIN: PARTICIPANTES
 # ══════════════════════════════════════════
 elif menu == "👥 Participantes (Liga)":
     st.markdown('<div class="titulo-principal">👥 Gestión de Participantes</div>', unsafe_allow_html=True)
@@ -704,7 +711,7 @@ elif menu == "👥 Participantes (Liga)":
                 st.rerun()
 
 # ══════════════════════════════════════════
-# ADMIN - RESULTADOS GRUPOS (GLOBAL)
+# ZONA ADMIN: RESULTADOS GRUPOS
 # ══════════════════════════════════════════
 elif menu == "🔧 Resultados Grupos (Global)":
     st.info("🌐 IMPORTANTE: Lo que cambies aquí afectará a TODAS las ligas a la vez.")
@@ -723,7 +730,7 @@ elif menu == "🔧 Resultados Grupos (Global)":
                 elif g.get("goles_A","")!="" and gA=="" and gB=="": borrar_resultado_grupo(key)
 
 # ══════════════════════════════════════════
-# ADMIN - RESULTADOS ELIMINATORIAS (GLOBAL)
+# ZONA ADMIN: RESULTADOS ELIMINATORIAS
 # ══════════════════════════════════════════
 elif menu == "⚔️ Resultados Elim. (Global)":
     st.info("🌐 IMPORTANTE: Lo que cambies aquí afectará a TODAS las ligas a la vez.")
@@ -755,7 +762,7 @@ elif menu == "⚔️ Resultados Elim. (Global)":
     cf=st.columns(2); [renderizar(m_id,qu_gan(m1.replace("_L",""),perdedor="_L" in m1),qu_gan(m2.replace("_L",""),perdedor="_L" in m2),cf[i]) for i,(m_id,(m1,m2)) in enumerate(CRUCES_FINALES.items())]
 
 # ══════════════════════════════════════════
-# ADMIN - GOLES DE EQUIPOS Y JUGADORES (GLOBAL)
+# ZONA ADMIN: GOLES EQUIPOS Y JUGADORES
 # ══════════════════════════════════════════
 elif menu == "🥇 Goles Equipo (Global)":
     st.info("🌐 GLOBAL: La selección que elijas dará +2 pts a todos los que la tengan, en TODAS las ligas.")
@@ -819,7 +826,7 @@ elif menu == "🎯 Goles Jugadores (Global)":
                 st.rerun()
 
 # ══════════════════════════════════════════
-# ADMIN - AJUSTE DE PUNTOS (LOCAL POR LIGA)
+# ZONA ADMIN: AJUSTE PUNTOS
 # ══════════════════════════════════════════
 elif menu == "➕ Ajuste Puntos (Liga)":
     st.markdown('<div class="titulo-principal">➕ Ajuste Manual de Puntos</div>', unsafe_allow_html=True)
@@ -833,3 +840,23 @@ elif menu == "➕ Ajuste Puntos (Liga)":
             if st.button("💾 Aplicar"): 
                 guardar_ajuste_puntos(liga_actual, participante_sel, nuevo_valor)
                 st.rerun()
+
+# ══════════════════════════════════════════
+# PIE DE PÁGINA (BOTÓN ADMIN INVISIBLE)
+# ══════════════════════════════════════════
+st.write("")
+st.write("")
+st.write("")
+st.divider()
+
+if not st.session_state.admin:
+    with st.expander("⚙️ Acceso Administrador"):
+        pwd = st.text_input("Contraseña Admin", type="password", key="pwd_app")
+        if st.button("Entrar Admin", key="btn_admin"):
+            if pwd == ADMIN_PASSWORD:
+                st.session_state.admin = True; st.rerun()
+            else:
+                st.error("Clave incorrecta")
+else:
+    if st.button("🔴 Cerrar sesión Administrador", use_container_width=True):
+        st.session_state.admin = False; st.rerun()
