@@ -294,7 +294,7 @@ if not st.session_state.liga_actual:
 # ══════════════════════════════════════════
 liga_actual = st.session_state.liga_actual
 
-# CARGA DE DATOS DEPENDIENTES DE LA LIGA Y GLOBALES
+# CARGA DE DATOS
 participantes     = cargar_participantes(liga_actual)
 ajustes_manuales  = cargar_ajustes_puntos(liga_actual)
 resultados_grupos = cargar_resultados_grupos()
@@ -380,7 +380,7 @@ df_tabla   = obtener_tabla_grupos()
 pos_grupos = obtener_clasificados(df_tabla)
 
 # ══════════════════════════════════════════
-# SIDEBAR
+# SIDEBAR (SOLO PARA ADMIN Y SALIR DE LIGA)
 # ══════════════════════════════════════════
 with st.sidebar:
     st.markdown('<div class="titulo-principal">⚽ Porra<br>Mundial 2026</div>', unsafe_allow_html=True)
@@ -407,11 +407,22 @@ with st.sidebar:
             if st.button("Cerrar sesión", use_container_width=True):
                 st.session_state.admin = False; st.rerun()
 
-    opciones_menu = ["📊 Clasificación General", "🔥 Tabla de Goleadores", "🏆 Tabla de Grupos", "📅 Resultados Partidos", "⚽ Cuadro Eliminatorias"]
     if st.session_state.admin:
-        opciones_menu += ["👥 Participantes (Liga)", "🔧 Resultados Grupos (Global)", "⚔️ Resultados Elim. (Global)", "🥇 Goles Equipo (Global)", "🎯 Goles Jugadores (Global)", "➕ Ajuste Puntos (Liga)"]
-    menu = st.radio("", opciones_menu, label_visibility="collapsed")
+        st.divider()
+        st.markdown("### 🛠️ MENÚ ADMINISTRADOR")
+        menu_admin_sel = st.radio("", ["(Cerrar Menú Admin)", "👥 Participantes (Liga)", "🔧 Resultados Grupos (Global)", "⚔️ Resultados Elim. (Global)", "🥇 Goles Equipo (Global)", "🎯 Goles Jugadores (Global)", "➕ Ajuste Puntos (Liga)"])
+    else:
+        menu_admin_sel = "(Cerrar Menú Admin)"
 
+# ══════════════════════════════════════════
+# MENÚ PÚBLICO EN PANTALLA PRINCIPAL
+# ══════════════════════════════════════════
+if menu_admin_sel != "(Cerrar Menú Admin)":
+    menu = menu_admin_sel
+else:
+    # Menú desplegable central para usuarios
+    menu = st.selectbox("👉 Elige qué quieres ver:", ["📊 Clasificación General", "🔥 Tabla de Goleadores", "🏆 Tabla de Grupos", "📅 Resultados Partidos", "⚽ Cuadro Eliminatorias"])
+    st.write("")
 
 # ══════════════════════════════════════════
 # CLASIFICACIÓN GENERAL (DEPENDIENTE DE LIGA)
@@ -422,7 +433,7 @@ if menu == "📊 Clasificación General":
     st.write("")
     
     if not participantes:
-        st.warning(f"Aún no hay participantes registrados en la liga '{liga_actual}'. Si eres el administrador, ve al menú 'Participantes' para añadirlos.")
+        st.warning(f"Aún no hay participantes registrados en la liga '{liga_actual}'. Si eres el administrador, abre el menú de la izquierda para añadirlos.")
     else:
         st.caption(f"🏆 Mostrando resultados para la liga: **{liga_actual}**")
         pts, detalles = calcular_puntos(df_tabla)
@@ -440,10 +451,8 @@ if menu == "📊 Clasificación General":
             nombres_str = ", ".join(row["Equipos"])
             extra_badge = f'<span style="font-size:0.5em; background:rgba(255,255,255,0.2); padding:2px 5px; border-radius:4px; margin-left:10px;">Ajuste: {row["Extra"]} pts</span>' if row["Extra"] != 0 else ""
 
-            # Reducimos un poco el margen de abajo para que los botones se queden "pegaditos" a la tarjeta
             st.markdown(f'<div class="card" style="margin-bottom: 10px;"><div style="display:flex; justify-content:space-between; align-items:center;"><div><span style="font-size:1.5em">{med}</span><span style="font-size:1.3em; font-weight:700; margin-left:10px; color:white;">{row["Jugador"]}</span>{extra_badge}<br><small style="color:#888">{equipos_str} {nombres_str}</small></div><div style="font-size:2em; font-weight:900; color:#FFD700">{row["Puntos"]}<span style="font-size:0.4em; color:#888"> pts</span></div></div></div>', unsafe_allow_html=True)
             
-            # --- NUEVO: BOTONES FLOTANTES (POPOVER) ---
             col_btn1, col_btn2 = st.columns(2)
             
             with col_btn1.popover("🔍 Ver Puntos", use_container_width=True):
@@ -489,7 +498,6 @@ if menu == "📊 Clasificación General":
                 if html_partidos == "": st.caption("Aún no tienen partidos.")
                 else: st.markdown(html_partidos, unsafe_allow_html=True)
             
-            # Espacio extra debajo de cada jugador
             st.markdown("<div style='margin-bottom: 25px;'></div>", unsafe_allow_html=True)
 
 # ══════════════════════════════════════════
