@@ -16,34 +16,32 @@ st.markdown("""
     .main { background-color: #0e1117; }
     .stApp { background: linear-gradient(135deg, #0e1117 0%, #1a1f2e 100%); }
     
-    [data-testid="block-container"] { max-width: 650px; margin: 0 auto; padding-top: 2rem; padding-bottom: 2rem; }
+    /* ELIMINAR EL ESPACIO GIGANTE DE ARRIBA */
+    [data-testid="block-container"] { max-width: 650px; margin: 0 auto; padding-top: 0rem !important; padding-bottom: 2rem; }
     
     /* Botones dorados y letra negra siempre */
     button[kind="secondary"], button[kind="primary"], div.stButton > button {
-        background-color: #FFD700 !important; border: 2px solid #B8860B !important; border-radius: 8px !important; margin-bottom: 5px;
+        background-color: #FFD700 !important; border: 2px solid #B8860B !important; border-radius: 8px !important; margin-bottom: 0px;
     }
     button[kind="secondary"] p, button[kind="primary"] p, div.stButton > button p {
         color: #000000 !important; font-weight: 900 !important; font-size: 1.1em !important; margin: 0 !important; padding: 0 !important;
     }
     button:hover { background-color: #FFA500 !important; }
     
-    /* Paneles desplegables de la clasificación (Expanders) */
-    [data-testid="stExpander"] { background-color: #1e2530; border: 1px solid #333; border-radius: 8px; margin-bottom: 10px; }
-    [data-testid="stExpander"] summary { background-color: transparent !important; padding: 12px 15px !important; }
-    [data-testid="stExpander"] summary p { font-size: 1.15em; font-weight: 700; color: white; margin: 0; }
-    [data-testid="stExpander"] summary:hover { background-color: rgba(255, 215, 0, 0.1) !important; }
-    
     /* Títulos inquebrantables (una sola línea) */
-    .titulo-principal { text-align: center; font-size: clamp(1.6em, 6vw, 2.5em); font-weight: 900; background: linear-gradient(90deg, #FFD700, #FF6B35, #FFD700); -webkit-background-clip: text; -webkit-text-fill-color: transparent; padding: 20px 0 5px 0; letter-spacing: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .titulo-landing { text-align: center; font-size: clamp(2.2em, 8vw, 4.5em); font-weight: 900; background: linear-gradient(90deg, #FFD700, #FF6B35, #FFD700); -webkit-background-clip: text; -webkit-text-fill-color: transparent; padding: 10px 0 0 0; letter-spacing: 2px; line-height: 1.1; }
+    .titulo-principal { text-align: center; font-size: clamp(1.6em, 6vw, 2.5em); font-weight: 900; background: linear-gradient(90deg, #FFD700, #FF6B35, #FFD700); -webkit-background-clip: text; -webkit-text-fill-color: transparent; padding: 15px 0 5px 0; letter-spacing: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .titulo-landing { text-align: center; font-size: clamp(2.2em, 8vw, 4.5em); font-weight: 900; background: linear-gradient(90deg, #FFD700, #FF6B35, #FFD700); -webkit-background-clip: text; -webkit-text-fill-color: transparent; padding: 10px 0 0 0; letter-spacing: 2px; line-height: 1.1; margin-top: 10px; }
     .subtitulo { text-align: center; color: #aaa !important; font-size: clamp(0.8em, 3vw, 1.2em); margin-bottom: 20px; letter-spacing: 5px; }
     
     .card { background: linear-gradient(135deg, #1e2530, #252d3a); border: 1px solid #2d3748; border-radius: 12px; padding: 20px; margin: 10px 0; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
     .mini-card { background-color: #1a202a; border: 1px solid #333; border-radius: 8px; padding: 12px; margin-bottom: 8px; }
     
-    /* Pantalla de inicio centrada */
-    .login-wrapper { display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 80vh; width: 100%; }
-    .login-box { background: linear-gradient(135deg, #1e2530, #252d3a); border: 1px solid #2d3748; border-radius: 12px; padding: 30px 20px; width: 100%; max-width: 400px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+    /* Pantalla de inicio */
+    .login-wrapper { display: flex; flex-direction: column; align-items: center; width: 100%; margin-top: 0; }
+    .login-box { background: linear-gradient(135deg, #1e2530, #252d3a); border: 1px solid #2d3748; border-radius: 12px; padding: 30px 20px; width: 100%; max-width: 400px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.5); margin-top: 20px; }
+    
+    /* Alineación vertical perfecta para las columnas de la clasificación */
+    .col-text { line-height: 38px; margin: 0; padding: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -314,15 +312,30 @@ if menu == "📊 Clasificación General":
     
     if not participantes: st.warning("Aún no hay participantes en esta liga.")
     else:
-        st.caption("👇 Toca en la fila de cualquier jugador para ver sus equipos y partidos al instante.")
         for i, row in enumerate(clasificacion_ordenada):
             med = ["🥇","🥈","🥉"][i] if i < 3 else f"#{i+1}"
             
-            # MAGIA: Toda la fila es un expander nativo súper estable y alineado con un separador claro.
-            titulo_fila = f"{med} {row['Jugador']}  •  {row['Puntos']} pts"
+            # MAGIA DE ALINEACIÓN: Usamos columnas de Streamlit. Izquierda (Nombre), Centro (Puntos), Derecha (Botón)
+            c1, c2, c3 = st.columns([6, 3, 2])
             
-            with st.expander(titulo_fila):
+            with c1:
+                st.markdown(f"<div class='col-text' style='font-size:1.15em; font-weight:bold; color:white;'><span style='color:#aaa; display:inline-block; width:28px;'>{med}</span>{row['Jugador']}</div>", unsafe_allow_html=True)
+            with c2:
+                st.markdown(f"<div class='col-text' style='font-size:1.3em; font-weight:900; color:#FFD700; text-align:right;'>{row['Puntos']}<span style='font-size:0.5em; color:#aaa; margin-left:3px;'>pts</span></div>", unsafe_allow_html=True)
+            with c3:
+                btn_key = f"expand_{row['Jugador']}"
+                if btn_key not in st.session_state: st.session_state[btn_key] = False
+                
+                label_btn = "🔼" if st.session_state[btn_key] else "🔽 Ver"
+                if st.button(label_btn, key=f"btn_{row['Jugador']}", use_container_width=True):
+                    st.session_state[btn_key] = not st.session_state[btn_key]
+                    st.rerun()
+            
+            # Si el botón está pulsado, mostramos los detalles justo debajo
+            if st.session_state[btn_key]:
+                st.markdown(f"<div class='card' style='margin-top: 0; padding-top: 10px;'>", unsafe_allow_html=True)
                 st.markdown(f"**🛡️ Selecciones de {row['Jugador']}**")
+                
                 for eq in row["Equipos"]:
                     det = detalles_globales[eq]
                     desglose = []
@@ -364,6 +377,9 @@ if menu == "📊 Clasificación General":
                 
                 if html_partidos == "": st.caption("No hay partidos de estas selecciones.")
                 else: st.markdown(html_partidos, unsafe_allow_html=True)
+                st.markdown("</div>", unsafe_allow_html=True)
+                
+            st.markdown("<hr style='margin: 4px 0; border-color: #333;'>", unsafe_allow_html=True)
 
 
 elif menu == "🔥 Tabla de Goleadores":
@@ -533,4 +549,3 @@ elif menu == "➕ Ajuste Puntos":
     if p_sel:
         nv = st.number_input("Puntos extra:", value=ajustes_manuales.get(p_sel, 0))
         if st.button("💾 Aplicar"): guardar_ajuste_puntos(liga_actual, p_sel, nv); st.rerun()
-    
