@@ -36,9 +36,6 @@ st.markdown("""
     .resultado-badge { background: #FFD700; color: #000 !important; border-radius: 6px; padding: 2px 8px; font-weight: bold; font-size: 0.9em; }
     
     .centrado-absoluto { max-width: 500px; margin: 15vh auto 0 auto; padding: 15px; }
-    
-    /* Fila compacta clasificación */
-    .fila-clasif { background-color: #1e2530; border: 1px solid #333; border-radius: 8px; padding: 10px 15px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -308,17 +305,21 @@ if menu == "📊 Clasificación General":
             for i, row in enumerate(clasificacion_ordenada):
                 med = ["🥇","🥈","🥉"][i] if i < 3 else f"#{i+1}"
                 
-                # Diseño de fila muy compacto
-                c1, c2 = st.columns([4, 2])
+                # Diseño de fila ultra-compacto: 3 mini-columnas para mantener todo en línea
+                c1, c2, c3 = st.columns([5, 2, 1])
                 with c1:
-                    st.markdown(f"<div style='margin-top:10px; font-size:1.1em;'><b>{med} <span style='color:white;'>{row['Jugador']}</span></b> · <span style='color:#FFD700; font-weight:bold;'>{row['Puntos']} pts</span></div>", unsafe_allow_html=True)
+                    st.markdown(f"<div style='padding-top: 10px; font-size: 1.1em;'><b><span style='display:inline-block; width: 25px;'>{med}</span> <span style='color:white;'>{row['Jugador']}</span></b></div>", unsafe_allow_html=True)
                 with c2:
-                    if st.button("🔍 Ver", key=f"btn_{row['Jugador']}", use_container_width=True):
+                    st.markdown(f"<div style='padding-top: 10px; text-align: right; font-size: 1.2em; font-weight: 900; color: #FFD700;'>{row['Puntos']}<span style='font-size: 0.5em; color: #aaa;'> pts</span></div>", unsafe_allow_html=True)
+                with c3:
+                    if st.button("🔍", key=f"btn_{row['Jugador']}", use_container_width=True):
                         st.session_state.jugador_viendo_detalle = row['Jugador']
                         st.rerun()
-            st.caption("🔍 Toca en 'Ver' para ojear los puntos y partidos de cualquier amigo.")
+                
+                # Separador sutil para que parezca una tabla limpia
+                st.markdown("<hr style='margin: 0; border-color: #333;'>", unsafe_allow_html=True)
 
-    # 2. PANTALLA DE DETALLE (SI HEMOS PULSADO EN ALGUIEN)
+    # 2. PANTALLA DE DETALLE (SI HEMOS PULSADO EN LA LUPA DE ALGUIEN)
     else:
         jug_sel = st.session_state.jugador_viendo_detalle
         row = next(item for item in clasificacion_ordenada if item["Jugador"] == jug_sel)
