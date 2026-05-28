@@ -149,7 +149,7 @@ FECHAS_ELIM = {
 def get_supabase():
     return create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
 
-# --- FUNCIONES DE BASE DE DATOS (NUEVAS MULTI-LIGA) ---
+# --- FUNCIONES DE BASE DE DATOS (MULTI-LIGA) ---
 @st.cache_data(ttl=30)
 def cargar_participantes(liga):
     if not liga: return {}
@@ -259,7 +259,6 @@ if "admin" not in st.session_state:
 
 # --- PANTALLA PRINCIPAL (LANDING PAGE) ---
 if not st.session_state.liga_actual:
-    # Escondemos el sidebar en la página principal
     st.markdown("""<style>section[data-testid="stSidebar"] {display: none;}</style>""", unsafe_allow_html=True)
     
     st.markdown('<div class="titulo-landing">⚽ Porra Mundial 2026</div>', unsafe_allow_html=True)
@@ -287,7 +286,6 @@ if not st.session_state.liga_actual:
                 
         st.markdown("</div>", unsafe_allow_html=True)
         
-    # Detenemos aquí la ejecución. Nada de lo de abajo se cargará hasta que entren.
     st.stop()
 
 
@@ -442,9 +440,14 @@ if menu == "📊 Clasificación General":
             nombres_str = ", ".join(row["Equipos"])
             extra_badge = f'<span style="font-size:0.5em; background:rgba(255,255,255,0.2); padding:2px 5px; border-radius:4px; margin-left:10px;">Ajuste: {row["Extra"]} pts</span>' if row["Extra"] != 0 else ""
 
-            st.markdown(f'<div class="card" style="margin-bottom: 0px;"><div style="display:flex; justify-content:space-between; align-items:center;"><div><span style="font-size:1.5em">{med}</span><span style="font-size:1.3em; font-weight:700; margin-left:10px; color:white;">{row["Jugador"]}</span>{extra_badge}<br><small style="color:#888">{equipos_str} {nombres_str}</small></div><div style="font-size:2em; font-weight:900; color:#FFD700">{row["Puntos"]}<span style="font-size:0.4em; color:#888"> pts</span></div></div></div>', unsafe_allow_html=True)
+            # Reducimos un poco el margen de abajo para que los botones se queden "pegaditos" a la tarjeta
+            st.markdown(f'<div class="card" style="margin-bottom: 10px;"><div style="display:flex; justify-content:space-between; align-items:center;"><div><span style="font-size:1.5em">{med}</span><span style="font-size:1.3em; font-weight:700; margin-left:10px; color:white;">{row["Jugador"]}</span>{extra_badge}<br><small style="color:#888">{equipos_str} {nombres_str}</small></div><div style="font-size:2em; font-weight:900; color:#FFD700">{row["Puntos"]}<span style="font-size:0.4em; color:#888"> pts</span></div></div></div>', unsafe_allow_html=True)
             
-            with st.expander(f"🔍 Ver detalle de puntos de {row['Jugador']}"):
+            # --- NUEVO: BOTONES FLOTANTES (POPOVER) ---
+            col_btn1, col_btn2 = st.columns(2)
+            
+            with col_btn1.popover("🔍 Ver Puntos", use_container_width=True):
+                st.markdown(f"**Desglose de {row['Jugador']}**")
                 for eq in row["Equipos"]:
                     det = detalles[eq]
                     desglose = []
@@ -456,7 +459,8 @@ if menu == "📊 Clasificación General":
                     str_desglose = " · ".join(desglose) if desglose else "Aún sin puntos"
                     st.write(f"{flag(eq)} **{eq}** (`{pts[eq]} pts`) ➜ <span style='font-size:0.85em; color:#aaa;'>{str_desglose}</span>", unsafe_allow_html=True)
 
-            with st.expander(f"⚽ Ver calendario y partidos de {row['Jugador']}"):
+            with col_btn2.popover("⚽ Ver Partidos", use_container_width=True):
+                st.markdown(f"**Partidos de {row['Jugador']}**")
                 html_partidos = ""
                 for g, equipos in GRUPOS.items():
                     cruces_g = [(equipos[0],equipos[1]), (equipos[2],equipos[3]), (equipos[0],equipos[2]), (equipos[1],equipos[3]), (equipos[0],equipos[3]), (equipos[1],equipos[2])]
@@ -484,6 +488,9 @@ if menu == "📊 Clasificación General":
                 
                 if html_partidos == "": st.caption("Aún no tienen partidos.")
                 else: st.markdown(html_partidos, unsafe_allow_html=True)
+            
+            # Espacio extra debajo de cada jugador
+            st.markdown("<div style='margin-bottom: 25px;'></div>", unsafe_allow_html=True)
 
 # ══════════════════════════════════════════
 # TOP GOLEADORES (GLOBAL)
