@@ -72,7 +72,7 @@ st.markdown("""
 ADMIN_PASSWORD = st.secrets["ADMIN_PASSWORD"]
 
 BANDERAS = {
-    "ESPAÑA": "🇪🇸💩", "FRANCIA": "🇫🇷", "INGLATERRA": "🏴󠁧󠁢󠁥󠁮󠁧󠁿", "BRASIL": "🇧🇷", "ARGENTINA": "🇦🇷",
+    "ESPAÑA": "💩", "FRANCIA": "🇫🇷", "INGLATERRA": "🏴󠁧󠁢󠁥󠁮󠁧󠁿", "BRASIL": "🇧🇷", "ARGENTINA": "🇦🇷",
     "PORTUGAL": "🇵🇹", "ALEMANIA": "🇩🇪", "PAÍSES BAJOS": "🇳🇱", "NORUEGA": "🇳🇴", "BÉLGICA": "🇧🇪",
     "COLOMBIA": "🇨🇴", "JAPÓN": "🇯🇵", "USA": "🇺🇸", "MARRUECOS": "🇲🇦", "URUGUAY": "🇺🇾",
     "SUIZA": "🇨🇭", "MÉXICO": "🇲🇽", "CROACIA": "🇭🇷", "TURQUÍA": "🇹🇷", "ECUADOR": "🇪🇨",
@@ -290,8 +290,22 @@ if not st.session_state.liga_actual:
         
         if st.button("🚀 ENTRAR A MI LIGA", use_container_width=True):
             if codigo:
-                st.session_state.liga_actual = codigo
-                st.rerun()
+                if st.session_state.admin:
+                    # Si eres admin, pasas directamente aunque no exista (así la creas)
+                    st.session_state.liga_actual = codigo
+                    st.rerun()
+                else:
+                    # Comprobamos en la base de datos si la liga existe
+                    try:
+                        sb = get_supabase()
+                        check = sb.table("participantes").select("nombre").eq("liga", codigo).limit(1).execute()
+                        if check.data and len(check.data) > 0:
+                            st.session_state.liga_actual = codigo
+                            st.rerun()
+                        else:
+                            st.error(f"❌ La liga '{codigo}' no existe. Comprueba que esté bien escrito o pide al administrador que te añada.")
+                    except Exception:
+                        st.error("Hubo un problema al comprobar la liga. Inténtalo de nuevo.")
             else:
                 st.error("Por favor, escribe un código para entrar.")
                 
@@ -301,7 +315,7 @@ if not st.session_state.liga_actual:
     st.write("")
     st.write("")
     
-    # Login Admin escondido abajo del todo en la landing (opcional si quieres loguearte antes)
+    # Login Admin escondido abajo del todo en la landing
     if not st.session_state.admin:
         with st.expander("⚙️ Acceso Administrador"):
             pwd = st.text_input("Contraseña Admin", type="password", key="pwd_land")
@@ -446,7 +460,7 @@ if menu == "--- ZONA ADMINISTRADOR ---":
 # CLASIFICACIÓN GENERAL
 # ══════════════════════════════════════════
 if menu == "📊 Clasificación General":
-    st.image("https://fotografias.antena3.com/clipping/cmsimages02/2022/12/19/57017F2A-8327-404D-8997-5C37A44CDC03/messi-replica-iconica-imagen-maradona-copa-mundo_97.jpg?crop=4096,2304,x0,y0&width=1600&height=900&optimize=low&format=webply.jpg", use_container_width=True)
+    st.image("https://upload.wikimedia.org/wikipedia/commons/b/b4/Lionel-Messi-Argentina-2022.jpg", use_container_width=True)
     st.markdown('<div class="titulo-principal">📊 Clasificación General</div>', unsafe_allow_html=True)
     st.write("")
     
@@ -682,7 +696,7 @@ elif menu == "⚽ Cuadro Eliminatorias":
 # ══════════════════════════════════════════
 # ZONA ADMIN: PARTICIPANTES
 # ══════════════════════════════════════════
-elif menu == "👥 Participantes (Liga)":
+elif menu == "👥 Participantes (Liga actual)":
     st.markdown('<div class="titulo-principal">👥 Gestión de Participantes</div>', unsafe_allow_html=True)
     st.info(f"Estás añadiendo jugadores a la liga: **{liga_actual}**")
     with st.form("form_amigos"):
@@ -828,7 +842,7 @@ elif menu == "🎯 Goles Jugadores (Global)":
 # ══════════════════════════════════════════
 # ZONA ADMIN: AJUSTE PUNTOS
 # ══════════════════════════════════════════
-elif menu == "➕ Ajuste Puntos (Liga)":
+elif menu == "➕ Ajuste Puntos (Liga actual)":
     st.markdown('<div class="titulo-principal">➕ Ajuste Manual de Puntos</div>', unsafe_allow_html=True)
     if not participantes:
         st.warning(f"No hay participantes en la liga '{liga_actual}'.")
