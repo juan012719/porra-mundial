@@ -18,7 +18,7 @@ st.markdown("""
     
     [data-testid="block-container"] { max-width: 650px; margin: 0 auto; padding-top: 2rem; }
     
-    /* Botones blindados: Fondo dorado, letra negra siempre */
+    /* Botones dorados y letra negra siempre */
     button[kind="secondary"], button[kind="primary"], div.stButton > button {
         background-color: #FFD700 !important; border: 2px solid #B8860B !important; border-radius: 8px !important; margin-bottom: 5px;
     }
@@ -27,6 +27,51 @@ st.markdown("""
     }
     button:hover { background-color: #FFA500 !important; }
     
+    /* ---------------------------------------------------
+       EL TRUCO PARA ALINEAR LA LUPA Y EL NOMBRE EN 1 LÍNEA
+       (Sin romper el resto de la aplicación)
+       --------------------------------------------------- */
+    
+    /* 1. Cabecera superior */
+    div.element-container:has(.header-marker) + div.element-container > div[data-testid="stHorizontalBlock"] {
+        flex-direction: row !important; flex-wrap: nowrap !important; align-items: center !important;
+    }
+    div.element-container:has(.header-marker) + div.element-container > div[data-testid="stHorizontalBlock"] > div[data-testid="column"]:nth-child(1) {
+        flex: 1 1 auto !important; min-width: 0 !important;
+    }
+    div.element-container:has(.header-marker) + div.element-container > div[data-testid="stHorizontalBlock"] > div[data-testid="column"]:nth-child(2) {
+        flex: 0 0 90px !important; min-width: 0 !important;
+    }
+    div.element-container:has(.header-marker) + div.element-container > div[data-testid="stHorizontalBlock"] button {
+        height: 38px !important; min-height: 38px !important; padding: 0 !important; margin: 0 !important;
+    }
+
+    /* 2. Filas de Clasificación */
+    div.element-container:has(.fila-clasif-marker) + div.element-container > div[data-testid="stHorizontalBlock"] {
+        flex-direction: row !important; flex-wrap: nowrap !important; align-items: center !important;
+        background-color: #1e2530 !important; border: 1px solid #333 !important; border-radius: 8px !important;
+        padding: 5px 10px !important; margin-bottom: 8px !important; gap: 5px !important;
+    }
+    div.element-container:has(.fila-clasif-marker) + div.element-container > div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
+        min-width: 0 !important; width: auto !important; padding: 0 !important; margin: 0 !important;
+    }
+    /* Columna Nombre */
+    div.element-container:has(.fila-clasif-marker) + div.element-container > div[data-testid="stHorizontalBlock"] > div[data-testid="column"]:nth-child(1) {
+        flex: 1 1 auto !important;
+    }
+    /* Columna Puntos */
+    div.element-container:has(.fila-clasif-marker) + div.element-container > div[data-testid="stHorizontalBlock"] > div[data-testid="column"]:nth-child(2) {
+        flex: 0 0 auto !important;
+    }
+    /* Columna Lupa */
+    div.element-container:has(.fila-clasif-marker) + div.element-container > div[data-testid="stHorizontalBlock"] > div[data-testid="column"]:nth-child(3) {
+        flex: 0 0 42px !important;
+    }
+    /* Botón lupa específico */
+    div.element-container:has(.fila-clasif-marker) + div.element-container > div[data-testid="stHorizontalBlock"] button {
+        height: 32px !important; min-height: 32px !important; padding: 0 !important; margin: 0 !important; width: 100% !important; font-size: 1.3em !important;
+    }
+    
     .titulo-principal { text-align: center; font-size: 2.5em; font-weight: 900; background: linear-gradient(90deg, #FFD700, #FF6B35, #FFD700); -webkit-background-clip: text; -webkit-text-fill-color: transparent; padding: 20px 0 5px 0; letter-spacing: 2px; }
     .titulo-landing { text-align: center; font-size: clamp(2.5em, 8vw, 4.5em); font-weight: 900; background: linear-gradient(90deg, #FFD700, #FF6B35, #FFD700); -webkit-background-clip: text; -webkit-text-fill-color: transparent; padding: 10px 0 10px 0; letter-spacing: 2px; }
     .subtitulo { text-align: center; color: #aaa !important; font-size: clamp(0.9em, 3vw, 1.2em); margin-bottom: 30px; letter-spacing: 5px; }
@@ -34,7 +79,6 @@ st.markdown("""
     .card { background: linear-gradient(135deg, #1e2530, #252d3a); border: 1px solid #2d3748; border-radius: 12px; padding: 20px; margin: 10px 0; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
     .mini-card { background-color: #1e2530; border: 1px solid #333; border-radius: 8px; padding: 12px; margin-bottom: 8px; }
     .resultado-badge { background: #FFD700; color: #000 !important; border-radius: 6px; padding: 2px 8px; font-weight: bold; font-size: 0.9em; }
-    
     .centrado-absoluto { max-width: 500px; margin: 15vh auto 0 auto; padding: 15px; }
 </style>
 """, unsafe_allow_html=True)
@@ -261,8 +305,10 @@ clasificacion_ordenada = sorted(lista_clasif, key=lambda x: x["Puntos"], reverse
 # ══════════════════════════════════════════
 # MENÚ SUPERIOR Y NAVEGACIÓN
 # ══════════════════════════════════════════
+st.markdown('<div class="header-marker" style="display:none;"></div>', unsafe_allow_html=True)
 col_title, col_btn = st.columns([3, 1])
-with col_title: st.markdown(f"<h3 style='color:#FFD700; margin:0; padding-top:5px;'>🏆 Liga: {liga_actual}</h3>", unsafe_allow_html=True)
+with col_title: 
+    st.markdown(f"<div style='display:flex; align-items:center; height:38px;'><h3 style='color:#FFD700; margin:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;'>🏆 Liga: {liga_actual}</h3></div>", unsafe_allow_html=True)
 with col_btn:
     if st.button("🚪 Salir", use_container_width=True): 
         st.session_state.liga_actual = ""
@@ -293,39 +339,30 @@ if menu == "--- ZONA ADMIN ---": st.info("👆 Selecciona una herramienta de adm
 # ══════════════════════════════════════════
 if menu == "📊 Clasificación General":
     
-    # --- 1. PANTALLA DE CLASIFICACIÓN (SI NO ESTAMOS VIENDO A NADIE) ---
+    # --- 1. PANTALLA DE CLASIFICACIÓN ---
     if st.session_state.jugador_viendo_detalle is None:
         st.image("https://upload.wikimedia.org/wikipedia/commons/b/b4/Lionel-Messi-Argentina-2022.jpg", use_container_width=True)
         st.markdown('<div class="titulo-principal">📊 Clasificación General</div>', unsafe_allow_html=True)
-        
-        # INYECCIÓN CSS MÁGICA: Obliga a que nombre, puntos y botón estén estrictamente en 1 sola línea horizontal
-        st.markdown("""
-        <style>
-            [data-testid="stHorizontalBlock"] { flex-direction: row !important; flex-wrap: nowrap !important; align-items: center !important; margin-bottom: 2px !important; }
-            [data-testid="stHorizontalBlock"] > div[data-testid="column"] { min-width: 0 !important; padding: 0 4px !important; }
-            div.stButton > button { height: 32px !important; min-height: 32px !important; margin: 0 !important; padding: 0 !important; font-size: 1.2em !important; }
-        </style>
-        """, unsafe_allow_html=True)
         
         if not participantes: st.warning("Aún no hay participantes en esta liga.")
         else:
             for i, row in enumerate(clasificacion_ordenada):
                 med = ["🥇","🥈","🥉"][i] if i < 3 else f"#{i+1}"
                 
-                # Fila en 3 mini-columnas blindadas: Nombre (6), Puntos (3), Lupa (2)
-                c1, c2, c3 = st.columns([6, 3, 2])
+                # OJO: Este es el marcador mágico que solo alinea ESTA fila, sin romper nada más.
+                st.markdown('<div class="fila-clasif-marker" style="display:none;"></div>', unsafe_allow_html=True)
+                c1, c2, c3 = st.columns(3)
+                
                 with c1:
-                    st.markdown(f"<div style='line-height:32px; font-size:1.1em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;'><b><span style='color:#aaa; display:inline-block; width:25px;'>{med}</span> <span style='color:white;'>{row['Jugador']}</span></b></div>", unsafe_allow_html=True)
+                    st.markdown(f"<div style='display:flex; align-items:center; height:32px; font-size:1.15em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;'><b><span style='color:#aaa; display:inline-block; width:22px;'>{med}</span> <span style='color:white;'>{row['Jugador']}</span></b></div>", unsafe_allow_html=True)
                 with c2:
-                    st.markdown(f"<div style='line-height:32px; text-align:right; font-size:1.2em; font-weight:900; color:#FFD700; white-space:nowrap;'>{row['Puntos']}<span style='font-size:0.5em; color:#aaa;'> pts</span></div>", unsafe_allow_html=True)
+                    st.markdown(f"<div style='display:flex; align-items:center; justify-content:flex-end; height:32px; font-size:1.2em; font-weight:900; color:#FFD700;'>{row['Puntos']}<span style='font-size:0.5em; color:#aaa; margin-left:3px; margin-top:4px;'>pts</span></div>", unsafe_allow_html=True)
                 with c3:
                     if st.button("🔍", key=f"btn_{row['Jugador']}", use_container_width=True):
                         st.session_state.jugador_viendo_detalle = row['Jugador']
                         st.rerun()
-                        
-                st.markdown("<hr style='margin:4px 0; border-color:#333;'>", unsafe_allow_html=True)
 
-    # --- 2. PANTALLA DE DETALLE (AL PULSAR EN UN JUGADOR) ---
+    # --- 2. PANTALLA DE DETALLE DE JUGADOR ---
     else:
         jug_sel = st.session_state.jugador_viendo_detalle
         row = next(item for item in clasificacion_ordenada if item["Jugador"] == jug_sel)
