@@ -311,13 +311,12 @@ with st.sidebar:
 # CLASIFICACIÓN GENERAL
 # ══════════════════════════════════════════
 if menu == "📊 Clasificación General":
-    st.image("https://fotografias.antena3.com/clipping/cmsimages02/2022/12/19/57017F2A-8327-404D-8997-5C37A44CDC03/messi-replica-iconica-imagen-maradona-copa-mundo_97.jpg?crop=4096,2304,x0,y0&width=1600&height=900&optimize=low&format=webply.jpg", use_container_width=True)
+    st.image("https://upload.wikimedia.org/wikipedia/commons/b/b4/Lionel-Messi-Argentina-2022.jpg", use_container_width=True)
     st.markdown('<div class="titulo-principal">📊 Clasificación General</div>', unsafe_allow_html=True)
     st.write("")
     if not participantes:
         st.warning("Aún no hay participantes registrados.")
     else:
-        # AHORA PEDIMOS LOS PUNTOS Y EL DESGLOSE DE DETALLES
         pts, detalles = calcular_puntos(df_tabla)
         
         lista_clasif = []
@@ -338,11 +337,11 @@ if menu == "📊 Clasificación General":
 
             st.markdown(f'<div class="card" style="margin-bottom: 0px;"><div style="display:flex; justify-content:space-between; align-items:center;"><div><span style="font-size:1.5em">{med}</span><span style="font-size:1.3em; font-weight:700; margin-left:10px; color:white;">{row["Jugador"]}</span>{extra_badge}<br><small style="color:#888">{equipos_str} {nombres_str}</small></div><div style="font-size:2em; font-weight:900; color:#FFD700">{row["Puntos"]}<span style="font-size:0.4em; color:#888"> pts</span></div></div></div>', unsafe_allow_html=True)
             
+            # DESPLEGABLE 1: Detalle de los Puntos
             with st.expander(f"🔍 Ver detalle de puntos de {row['Jugador']}"):
                 for eq in row["Equipos"]:
                     det = detalles[eq]
                     desglose = []
-                    # Solo mostramos en la lista las cosas que estén sumando (o restando) puntos
                     if det['Gr(Partidos)'] != 0: desglose.append(f"Fase Grupos: {det['Gr(Partidos)']}")
                     if det['Gr(Goles)'] != 0: desglose.append(f"Goleadas Gr: {det['Gr(Goles)']}")
                     if det['Gr(Bono)'] != 0: desglose.append(f"Bono Posición: {det['Gr(Bono)']}")
@@ -358,6 +357,38 @@ if menu == "📊 Clasificación General":
                 
                 if row["Extra"] != 0:
                     st.write(f"➕ **Ajuste manual**: `{row['Extra']} pts`")
+
+            # DESPLEGABLE 2: Partidos Jugados
+            with st.expander(f"⚽ Ver partidos jugados por las selecciones de {row['Jugador']}"):
+                html_partidos = ""
+                
+                # Buscamos en los partidos de la Fase de Grupos
+                for p in resultados_grupos.values():
+                    eA, eB = p['equipo_A'], p['equipo_B']
+                    if eA in row["Equipos"] or eB in row["Equipos"]:
+                        col_A = "#FFD700" if eA in row["Equipos"] else "#888"
+                        bold_A = "bold" if eA in row["Equipos"] else "normal"
+                        col_B = "#FFD700" if eB in row["Equipos"] else "#888"
+                        bold_B = "bold" if eB in row["Equipos"] else "normal"
+                        
+                        html_partidos += f"<div style='display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px dashed #2d3748; font-size:0.9em;'><span style='color:{col_A}; font-weight:{bold_A}; width:40%; text-align:right;'>{flag(eA)} {eA}</span> <span style='background:#1e2530; border: 1px solid #333; padding:2px 10px; border-radius:6px; color:white; font-weight:bold;'>{p['goles_A']} - {p['goles_B']}</span> <span style='color:{col_B}; font-weight:{bold_B}; width:40%; text-align:left;'>{eB} {flag(eB)}</span></div>"
+                
+                # Buscamos en las Eliminatorias
+                for m_id, p in resultados_elim.items():
+                    eA, eB = p['equipo_A'], p['equipo_B']
+                    if eA in row["Equipos"] or eB in row["Equipos"]:
+                        col_A = "#FFD700" if eA in row["Equipos"] else "#888"
+                        bold_A = "bold" if eA in row["Equipos"] else "normal"
+                        col_B = "#FFD700" if eB in row["Equipos"] else "#888"
+                        bold_B = "bold" if eB in row["Equipos"] else "normal"
+                        res_extra = f"<br><span style='font-size:0.7em; color:#888;'>{p['resolucion']}</span>" if p['resolucion'] != "90 min" else ""
+                        
+                        html_partidos += f"<div style='display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px dashed #2d3748; font-size:0.9em;'><span style='color:{col_A}; font-weight:{bold_A}; width:40%; text-align:right;'>{flag(eA)} {eA}</span> <span style='background:#1e2530; border: 1px solid #333; padding:2px 10px; border-radius:6px; color:white; font-weight:bold; text-align:center;'>{p['goles_A']} - {p['goles_B']}{res_extra}</span> <span style='color:{col_B}; font-weight:{bold_B}; width:40%; text-align:left;'>{eB} {flag(eB)}</span></div>"
+                
+                if html_partidos == "":
+                    st.caption("Aún no han jugado ningún partido.")
+                else:
+                    st.markdown(html_partidos, unsafe_allow_html=True)
 # ══════════════════════════════════════════
 # TABLA DE GRUPOS
 # ══════════════════════════════════════════
