@@ -16,7 +16,7 @@ st.markdown("""
     .main { background-color: #0e1117; }
     .stApp { background: linear-gradient(135deg, #0e1117 0%, #1a1f2e 100%); }
     
-    [data-testid="block-container"] { max-width: 650px; margin: 0 auto; padding-top: 2rem; }
+    [data-testid="block-container"] { max-width: 650px; margin: 0 auto; padding-top: 2rem; padding-bottom: 2rem; }
     
     /* Botones dorados y letra negra siempre */
     button[kind="secondary"], button[kind="primary"], div.stButton > button {
@@ -27,21 +27,23 @@ st.markdown("""
     }
     button:hover { background-color: #FFA500 !important; }
     
-    /* Estilo para los paneles desplegables (Expanders de la clasificación) */
+    /* Paneles desplegables de la clasificación (Expanders) */
     [data-testid="stExpander"] { background-color: #1e2530; border: 1px solid #333; border-radius: 8px; margin-bottom: 10px; }
-    [data-testid="stExpander"] summary { background-color: transparent !important; padding: 15px !important; }
-    [data-testid="stExpander"] summary p { font-size: 1.2em; font-weight: bold; color: white; margin: 0; }
+    [data-testid="stExpander"] summary { background-color: transparent !important; padding: 12px 15px !important; }
+    [data-testid="stExpander"] summary p { font-size: 1.15em; font-weight: 700; color: white; margin: 0; }
     [data-testid="stExpander"] summary:hover { background-color: rgba(255, 215, 0, 0.1) !important; }
     
-    .titulo-principal { text-align: center; font-size: 2.5em; font-weight: 900; background: linear-gradient(90deg, #FFD700, #FF6B35, #FFD700); -webkit-background-clip: text; -webkit-text-fill-color: transparent; padding: 20px 0 5px 0; letter-spacing: 2px; }
-    .titulo-landing { text-align: center; font-size: clamp(2.5em, 8vw, 4.5em); font-weight: 900; background: linear-gradient(90deg, #FFD700, #FF6B35, #FFD700); -webkit-background-clip: text; -webkit-text-fill-color: transparent; padding: 10px 0 10px 0; letter-spacing: 2px; }
-    .subtitulo { text-align: center; color: #aaa !important; font-size: clamp(0.9em, 3vw, 1.2em); margin-bottom: 30px; letter-spacing: 5px; }
+    /* Títulos inquebrantables (una sola línea) */
+    .titulo-principal { text-align: center; font-size: clamp(1.6em, 6vw, 2.5em); font-weight: 900; background: linear-gradient(90deg, #FFD700, #FF6B35, #FFD700); -webkit-background-clip: text; -webkit-text-fill-color: transparent; padding: 20px 0 5px 0; letter-spacing: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .titulo-landing { text-align: center; font-size: clamp(2.2em, 8vw, 4.5em); font-weight: 900; background: linear-gradient(90deg, #FFD700, #FF6B35, #FFD700); -webkit-background-clip: text; -webkit-text-fill-color: transparent; padding: 10px 0 0 0; letter-spacing: 2px; line-height: 1.1; }
+    .subtitulo { text-align: center; color: #aaa !important; font-size: clamp(0.8em, 3vw, 1.2em); margin-bottom: 20px; letter-spacing: 5px; }
     
     .card { background: linear-gradient(135deg, #1e2530, #252d3a); border: 1px solid #2d3748; border-radius: 12px; padding: 20px; margin: 10px 0; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
     .mini-card { background-color: #1a202a; border: 1px solid #333; border-radius: 8px; padding: 12px; margin-bottom: 8px; }
-    .resultado-badge { background: #FFD700; color: #000 !important; border-radius: 6px; padding: 2px 8px; font-weight: bold; font-size: 0.9em; }
     
-    .centrado-absoluto { max-width: 500px; margin: 15vh auto 0 auto; padding: 15px; }
+    /* Pantalla de inicio centrada */
+    .login-wrapper { display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 80vh; width: 100%; }
+    .login-box { background: linear-gradient(135deg, #1e2530, #252d3a); border: 1px solid #2d3748; border-radius: 12px; padding: 30px 20px; width: 100%; max-width: 400px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
 </style>
 """, unsafe_allow_html=True)
 
@@ -139,29 +141,42 @@ if "admin" not in st.session_state: st.session_state.admin = False
 if "menu_seleccionado" not in st.session_state: st.session_state.menu_seleccionado = "📊 Clasificación General"
 
 if not st.session_state.liga_actual:
-    st.markdown("""
-    <div class="centrado-absoluto">
-        <div class="titulo-landing">⚽ Porra Mundial 2026</div>
-        <div class="subtitulo">USA · CANADA · MEXICO</div>
-        <div class="card" style="text-align: center; padding: 40px; margin-top: 30px;">
-            <h2 style="color:white; margin-top:0;">🏆 Accede a tu Porra</h2>
-            <p style="color: #aaa; margin-bottom: 20px;">Introduce el código secreto para entrar a tu liga privada.</p>
-    """, unsafe_allow_html=True)
+    # NUEVO: Pantalla de inicio centrada con imagen integrada
+    st.markdown('<div class="login-wrapper">', unsafe_allow_html=True)
+    
+    st.image("https://upload.wikimedia.org/wikipedia/commons/b/b4/Lionel-Messi-Argentina-2022.jpg", use_container_width=True)
+    st.markdown('<div class="titulo-landing">⚽ Porra Mundial 2026</div>', unsafe_allow_html=True)
+    st.markdown('<div class="subtitulo">USA · CANADA · MEXICO</div>', unsafe_allow_html=True)
+    
+    st.markdown('<div class="login-box">', unsafe_allow_html=True)
+    st.markdown('<h2 style="color:white; margin-top:0;">🏆 Accede a tu Porra</h2>', unsafe_allow_html=True)
+    st.markdown('<p style="color: #aaa; margin-bottom: 20px;">Introduce el código secreto para entrar a tu liga privada.</p>', unsafe_allow_html=True)
     
     codigo = st.text_input("Código", placeholder="Ejemplo: CUADRILLA...", label_visibility="collapsed").strip().upper()
     st.write("")
+    
     if st.button("🚀 ENTRAR A MI LIGA", use_container_width=True):
         if codigo:
-            if st.session_state.admin: st.session_state.liga_actual = codigo; st.rerun()
+            if st.session_state.admin: 
+                st.session_state.liga_actual = codigo
+                st.rerun()
             else:
+                # SOLUCIÓN BUG LOGIN: Ya no usamos un try-except genérico que captura el st.rerun()
+                existe = False
                 try:
                     check = get_supabase().table("participantes").select("nombre").eq("liga", codigo).limit(1).execute()
-                    if check.data and len(check.data) > 0: st.session_state.liga_actual = codigo; st.rerun()
+                    if check.data and len(check.data) > 0: existe = True
                     else: st.error(f"❌ La liga '{codigo}' no existe. Comprueba el código.")
-                except: st.error("Hubo un problema. Inténtalo de nuevo.")
-        else: st.error("Escribe un código para entrar.")
+                except Exception:
+                    st.error("Hubo un problema de conexión. Inténtalo de nuevo.")
+                
+                if existe:
+                    st.session_state.liga_actual = codigo
+                    st.rerun()
+        else:
+            st.error("Escribe un código para entrar.")
             
-    st.markdown("</div></div><br><br><br>", unsafe_allow_html=True)
+    st.markdown("</div></div><br><br>", unsafe_allow_html=True)
     
     if not st.session_state.admin:
         with st.expander("⚙️ Acceso Administrador"):
@@ -267,7 +282,8 @@ clasificacion_ordenada = sorted(lista_clasif, key=lambda x: x["Puntos"], reverse
 # MENÚ SUPERIOR Y NAVEGACIÓN
 # ══════════════════════════════════════════
 col_title, col_btn = st.columns([3, 1])
-with col_title: st.markdown(f"<div style='display:flex; align-items:center; height:38px;'><h3 style='color:#FFD700; margin:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;'>🏆 Liga: {liga_actual}</h3></div>", unsafe_allow_html=True)
+with col_title: 
+    st.markdown(f"<div style='display:flex; align-items:center; height:38px;'><h3 style='color:#FFD700; margin:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;'>🏆 Liga: {liga_actual}</h3></div>", unsafe_allow_html=True)
 with col_btn:
     if st.button("🚪 Salir", use_container_width=True): 
         st.session_state.liga_actual = ""
@@ -296,17 +312,16 @@ if menu == "--- ZONA ADMIN ---": st.info("👆 Selecciona una herramienta de adm
 # ══════════════════════════════════════════
 if menu == "📊 Clasificación General":
     
-    st.image("https://upload.wikimedia.org/wikipedia/commons/b/b4/Lionel-Messi-Argentina-2022.jpg", use_container_width=True)
     st.markdown('<div class="titulo-principal">📊 Clasificación General</div>', unsafe_allow_html=True)
     
     if not participantes: st.warning("Aún no hay participantes en esta liga.")
     else:
-        st.caption("👇 Toca en la fila de cualquier jugador para ver sus puntos y partidos al instante.")
+        st.caption("👇 Toca en la fila de cualquier jugador para ver sus equipos y partidos al instante.")
         for i, row in enumerate(clasificacion_ordenada):
             med = ["🥇","🥈","🥉"][i] if i < 3 else f"#{i+1}"
             
-            # MAGIA: Toda la fila es un expander. El texto queda blindado en una línea inamovible.
-            titulo_fila = f"{med} {row['Jugador']}  |  {row['Puntos']} pts"
+            # MAGIA: Toda la fila es un expander nativo súper estable y alineado con un separador claro.
+            titulo_fila = f"{med} {row['Jugador']}  •  {row['Puntos']} pts"
             
             with st.expander(titulo_fila):
                 st.markdown(f"**🛡️ Selecciones de {row['Jugador']}**")
