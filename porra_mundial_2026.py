@@ -698,7 +698,6 @@ elif menu == "👥 Participantes (Liga actual)":
     st.markdown('<div class="titulo-principal">👥 Gestión de Participantes</div>', unsafe_allow_html=True)
     st.info(f"Estás añadiendo jugadores a la liga: **{liga_actual}**")
     
-    # Hemos quitado el "st.form" para que el móvil sume los puntos en tiempo real al hacer clic
     nombre = st.text_input("Nombre del participante")
     equipos_sel = st.multiselect("Selecciones (máx 30 pts)", list(VALOR_EQUIPOS.keys()), format_func=lambda x: f"{flag(x)} {x} ({VALOR_EQUIPOS[x]} pts)")
     coste = sum(VALOR_EQUIPOS[e] for e in equipos_sel)
