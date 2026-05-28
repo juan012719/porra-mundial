@@ -309,7 +309,7 @@ if menu == "📊 Clasificación General":
 
         for i, row in enumerate(clasificacion_ordenada):
             med = ["🥇","🥈","🥉"][i] if i < 3 else f"#{i+1}"
-titulo_fila = f"{med}  {row['Jugador']:<18}{row['Puntos']:>4} pts"
+            titulo_fila = f"{med}  {row['Jugador']:<18}{row['Puntos']:>4} pts"
 
             with st.expander(titulo_fila):
                 st.markdown(f"**🛡️ Selecciones de {row['Jugador']}**")
