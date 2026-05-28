@@ -5,7 +5,7 @@ from supabase import create_client
 # --- CONFIGURACIÓN ---
 st.set_page_config(page_title="Porra Mundial 2026 🌍", layout="wide", initial_sidebar_state="collapsed")
 
-# CSS personalizado
+# CSS personalizado global
 st.markdown("""
 <style>
     [data-testid="stHeader"] { display: none !important; }
@@ -23,7 +23,7 @@ st.markdown("""
         background-color: #FFD700 !important; border: 2px solid #B8860B !important; border-radius: 8px !important; margin-bottom: 5px;
     }
     button[kind="secondary"] p, button[kind="primary"] p, div.stButton > button p {
-        color: #000000 !important; font-weight: 900 !important; font-size: 1.1em !important;
+        color: #000000 !important; font-weight: 900 !important; font-size: 1.1em !important; margin: 0 !important; padding: 0 !important;
     }
     button:hover { background-color: #FFA500 !important; }
     
@@ -272,7 +272,6 @@ with col_btn:
 
 st.write("")
 
-# Ojo aquí: Ya no existe la opción "Detalle por Jugador" en el menú público
 opciones_menu = ["📊 Clasificación General", "🔥 Tabla de Goleadores", "🏆 Tabla de Grupos", "📅 Resultados Partidos", "⚽ Cuadro Eliminatorias"]
 if st.session_state.admin: opciones_menu += ["--- ZONA ADMIN ---", "👥 Participantes", "🔧 Resultados Grupos", "⚔️ Resultados Elim.", "🥇 Pichichi Equipo", "🎯 Pichichis Jugadores", "➕ Ajuste Puntos"]
 
@@ -281,7 +280,6 @@ except ValueError: idx_menu = 0
 
 menu = st.selectbox("👉 Elige qué quieres ver:", opciones_menu, index=idx_menu)
 
-# Si cambias de menú, matamos la vista de detalles por si acaso
 if menu != st.session_state.menu_seleccionado:
     st.session_state.menu_seleccionado = menu
     st.session_state.jugador_viendo_detalle = None
@@ -295,31 +293,39 @@ if menu == "--- ZONA ADMIN ---": st.info("👆 Selecciona una herramienta de adm
 # ══════════════════════════════════════════
 if menu == "📊 Clasificación General":
     
-    # 1. PANTALLA DE CLASIFICACIÓN (SI NO ESTAMOS VIENDO A NADIE)
+    # --- 1. PANTALLA DE CLASIFICACIÓN (SI NO ESTAMOS VIENDO A NADIE) ---
     if st.session_state.jugador_viendo_detalle is None:
         st.image("https://upload.wikimedia.org/wikipedia/commons/b/b4/Lionel-Messi-Argentina-2022.jpg", use_container_width=True)
         st.markdown('<div class="titulo-principal">📊 Clasificación General</div>', unsafe_allow_html=True)
+        
+        # INYECCIÓN CSS MÁGICA: Obliga a que nombre, puntos y botón estén estrictamente en 1 sola línea horizontal
+        st.markdown("""
+        <style>
+            [data-testid="stHorizontalBlock"] { flex-direction: row !important; flex-wrap: nowrap !important; align-items: center !important; margin-bottom: 2px !important; }
+            [data-testid="stHorizontalBlock"] > div[data-testid="column"] { min-width: 0 !important; padding: 0 4px !important; }
+            div.stButton > button { height: 32px !important; min-height: 32px !important; margin: 0 !important; padding: 0 !important; font-size: 1.2em !important; }
+        </style>
+        """, unsafe_allow_html=True)
         
         if not participantes: st.warning("Aún no hay participantes en esta liga.")
         else:
             for i, row in enumerate(clasificacion_ordenada):
                 med = ["🥇","🥈","🥉"][i] if i < 3 else f"#{i+1}"
                 
-                # Diseño de fila ultra-compacto: 3 mini-columnas para mantener todo en línea
-                c1, c2, c3 = st.columns([5, 2, 1])
+                # Fila en 3 mini-columnas blindadas: Nombre (6), Puntos (3), Lupa (2)
+                c1, c2, c3 = st.columns([6, 3, 2])
                 with c1:
-                    st.markdown(f"<div style='padding-top: 10px; font-size: 1.1em;'><b><span style='display:inline-block; width: 25px;'>{med}</span> <span style='color:white;'>{row['Jugador']}</span></b></div>", unsafe_allow_html=True)
+                    st.markdown(f"<div style='line-height:32px; font-size:1.1em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;'><b><span style='color:#aaa; display:inline-block; width:25px;'>{med}</span> <span style='color:white;'>{row['Jugador']}</span></b></div>", unsafe_allow_html=True)
                 with c2:
-                    st.markdown(f"<div style='padding-top: 10px; text-align: right; font-size: 1.2em; font-weight: 900; color: #FFD700;'>{row['Puntos']}<span style='font-size: 0.5em; color: #aaa;'> pts</span></div>", unsafe_allow_html=True)
+                    st.markdown(f"<div style='line-height:32px; text-align:right; font-size:1.2em; font-weight:900; color:#FFD700; white-space:nowrap;'>{row['Puntos']}<span style='font-size:0.5em; color:#aaa;'> pts</span></div>", unsafe_allow_html=True)
                 with c3:
                     if st.button("🔍", key=f"btn_{row['Jugador']}", use_container_width=True):
                         st.session_state.jugador_viendo_detalle = row['Jugador']
                         st.rerun()
-                
-                # Separador sutil para que parezca una tabla limpia
-                st.markdown("<hr style='margin: 0; border-color: #333;'>", unsafe_allow_html=True)
+                        
+                st.markdown("<hr style='margin:4px 0; border-color:#333;'>", unsafe_allow_html=True)
 
-    # 2. PANTALLA DE DETALLE (SI HEMOS PULSADO EN LA LUPA DE ALGUIEN)
+    # --- 2. PANTALLA DE DETALLE (AL PULSAR EN UN JUGADOR) ---
     else:
         jug_sel = st.session_state.jugador_viendo_detalle
         row = next(item for item in clasificacion_ordenada if item["Jugador"] == jug_sel)
