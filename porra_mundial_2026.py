@@ -18,40 +18,64 @@ st.markdown("""
     
     [data-testid="block-container"] { max-width: 650px; margin: 0 auto; padding-top: 2rem; }
     
+    /* Botones blindados: Fondo dorado, letra negra siempre */
     button[kind="secondary"], button[kind="primary"], div.stButton > button {
-        background-color: #f0f2f6 !important; border: 2px solid #ccc !important; border-radius: 8px !important;
+        background-color: #FFD700 !important; border: 2px solid #B8860B !important; border-radius: 8px !important; margin-top: -5px; margin-bottom: 15px;
     }
     button[kind="secondary"] p, button[kind="primary"] p, div.stButton > button p {
-        color: #111111 !important; font-weight: 900 !important; font-size: 1.1em !important;
+        color: #000000 !important; font-weight: 900 !important; font-size: 1.1em !important;
     }
-    button:hover { background-color: #FFD700 !important; border-color: #FFD700 !important; }
-    button:hover p { color: #000 !important; }
+    button:hover { background-color: #FFA500 !important; }
     
     .titulo-principal { text-align: center; font-size: 2.5em; font-weight: 900; background: linear-gradient(90deg, #FFD700, #FF6B35, #FFD700); -webkit-background-clip: text; -webkit-text-fill-color: transparent; padding: 20px 0 5px 0; letter-spacing: 2px; }
     .titulo-landing { text-align: center; font-size: clamp(2.5em, 8vw, 4.5em); font-weight: 900; background: linear-gradient(90deg, #FFD700, #FF6B35, #FFD700); -webkit-background-clip: text; -webkit-text-fill-color: transparent; padding: 10px 0 10px 0; letter-spacing: 2px; }
     .subtitulo { text-align: center; color: #aaa !important; font-size: clamp(0.9em, 3vw, 1.2em); margin-bottom: 30px; letter-spacing: 5px; }
     
-    .card { background: linear-gradient(135deg, #1e2530, #252d3a); border: 1px solid #2d3748; border-radius: 12px; padding: 20px; margin: 10px 0; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+    .card { background: linear-gradient(135deg, #1e2530, #252d3a); border: 1px solid #2d3748; border-radius: 12px; padding: 20px; margin: 10px 0 5px 0; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
     .mini-card { background-color: #1e2530; border: 1px solid #333; border-radius: 8px; padding: 12px; margin-bottom: 8px; }
-    .fila-clasificacion { display: flex; justify-content: space-between; align-items: center; background-color: #1e2530; padding: 12px 15px; border-radius: 8px; margin-bottom: 8px; border: 1px solid #333; }
     .resultado-badge { background: #FFD700; color: #000 !important; border-radius: 6px; padding: 2px 8px; font-weight: bold; font-size: 0.9em; }
+    
     .centrado-absoluto { max-width: 500px; margin: 15vh auto 0 auto; padding: 15px; }
 </style>
 """, unsafe_allow_html=True)
 
 ADMIN_PASSWORD = st.secrets["ADMIN_PASSWORD"]
 
-BANDERAS = {"ESPAÑA":"🇪🇸","FRANCIA":"🇫🇷","INGLATERRA":"🏴󠁧󠁢󠁥󠁮󠁧󠁿","BRASIL":"🇧🇷","ARGENTINA":"🇦🇷","PORTUGAL":"🇵🇹","ALEMANIA":"🇩🇪","PAÍSES BAJOS":"🇳🇱","NORUEGA":"🇳🇴","BÉLGICA":"🇧🇪","COLOMBIA":"🇨🇴","JAPÓN":"🇯🇵","USA":"🇺🇸","MARRUECOS":"🇲🇦","URUGUAY":"🇺🇾","SUIZA":"🇨🇭","MÉXICO":"🇲🇽","CROACIA":"🇭🇷","TURQUÍA":"🇹🇷","ECUADOR":"🇪🇨","SENEGAL":"🇸🇳","SUECIA":"🇸🇪","CANADÁ":"🇨🇦","AUSTRIA":"🇦🇹","PARAGUAY":"🇵🇾","ESCOCIA":"🏴󠁧󠁢󠁳󠁣󠁴󠁿","BOSNIA HERZEG.":"🇧🇦","COSTA MARFIL":"🇨🇮","EGIPTO":"🇪🇬","CHEQUIA":"🇨🇿","GHANA":"🇬🇭","ARGELIA":"🇩🇿","COREA DEL SUR":"🇰🇷","TÚNEZ":"🇹🇳","AUSTRALIA":"🇦🇺","IRÁN":"🇮🇷","CONGO":"🇨🇬","SUDÁFRICA":"🇿🇦","CATAR":"🇶🇦","ARABIA SAUDÍ":"🇸🇦","PANAMÁ":"🇵🇦","NUEVA ZELANDA":"🇳🇿","IRAK":"🇮🇶","CABO VERDE":"🇨🇻","CURACAO":"🇨🇼","UZBEQUISTÁN":"🇺🇿","JORDANIA":"🇯🇴","HAITÍ":"🇭🇹"}
-VALOR_EQUIPOS = {"ESPAÑA":29,"FRANCIA":27,"INGLATERRA":26,"BRASIL":24,"ARGENTINA":24,"PORTUGAL":20,"ALEMANIA":20,"PAÍSES BAJOS":19,"NORUEGA":18,"BÉLGICA":17,"COLOMBIA":17,"JAPÓN":15,"USA":14,"MARRUECOS":14,"URUGUAY":14,"SUIZA":13,"MÉXICO":13,"CROACIA":13,"TURQUÍA":11,"ECUADOR":10,"SENEGAL":10,"SUECIA":9,"CANADÁ":9,"AUSTRIA":9,"PARAGUAY":8,"ESCOCIA":8,"BOSNIA HERZEG.":8,"COSTA MARFIL":7,"EGIPTO":7,"CHEQUIA":7,"GHANA":6,"ARGELIA":6,"COREA DEL SUR":5,"TÚNEZ":5,"AUSTRALIA":5,"IRÁN":4,"CONGO":3,"SUDÁFRICA":3,"CATAR":3,"ARABIA SAUDÍ":2,"PANAMÁ":2,"NUEVA ZELANDA":2,"IRAK":2,"CABO VERDE":2,"CURACAO":2,"UZBEQUISTÁN":2,"JORDANIA":1,"HAITÍ":0}
-GRUPOS = {"A":["MÉXICO","SUDÁFRICA","COREA DEL SUR","CHEQUIA"],"B":["CANADÁ","BOSNIA HERZEG.","CATAR","SUIZA"],"C":["BRASIL","MARRUECOS","HAITÍ","ESCOCIA"],"D":["USA","PARAGUAY","AUSTRALIA","TURQUÍA"],"E":["ALEMANIA","CURACAO","COSTA MARFIL","ECUADOR"],"F":["PAÍSES BAJOS","JAPÓN","SUECIA","TÚNEZ"],"G":["BÉLGICA","EGIPTO","IRÁN","NUEVA ZELANDA"],"H":["ESPAÑA","CABO VERDE","ARABIA SAUDÍ","URUGUAY"],"I":["FRANCIA","SENEGAL","IRAK","NORUEGA"],"J":["ARGENTINA","ARGELIA","AUSTRIA","JORDANIA"],"K":["PORTUGAL","CONGO","UZBEQUISTÁN","COLOMBIA"],"L":["INGLATERRA","CROACIA","GHANA","PANAMÁ"]}
+BANDERAS = {
+    "ESPAÑA": "🇪🇸", "FRANCIA": "🇫🇷", "INGLATERRA": "🏴󠁧󠁢󠁥󠁮󠁧󠁿", "BRASIL": "🇧🇷", "ARGENTINA": "🇦🇷",
+    "PORTUGAL": "🇵🇹", "ALEMANIA": "🇩🇪", "PAÍSES BAJOS": "🇳🇱", "NORUEGA": "🇳🇴", "BÉLGICA": "🇧🇪",
+    "COLOMBIA": "🇨🇴", "JAPÓN": "🇯🇵", "USA": "🇺🇸", "MARRUECOS": "🇲🇦", "URUGUAY": "🇺🇾",
+    "SUIZA": "🇨🇭", "MÉXICO": "🇲🇽", "CROACIA": "🇭🇷", "TURQUÍA": "🇹🇷", "ECUADOR": "🇪🇨",
+    "SENEGAL": "🇸🇳", "SUECIA": "🇸🇪", "CANADÁ": "🇨🇦", "AUSTRIA": "🇦🇹", "PARAGUAY": "🇵🇾",
+    "ESCOCIA": "🏴󠁧󠁢󠁳󠁣󠁴󠁿", "BOSNIA HERZEG.": "🇧🇦", "COSTA MARFIL": "🇨🇮", "EGIPTO": "🇪🇬", "CHEQUIA": "🇨🇿",
+    "GHANA": "🇬🇭", "ARGELIA": "🇩🇿", "COREA DEL SUR": "🇰🇷", "TÚNEZ": "🇹🇳", "AUSTRALIA": "🇦🇺",
+    "IRÁN": "🇮🇷", "CONGO": "🇨🇬", "SUDÁFRICA": "🇿🇦", "CATAR": "🇶🇦", "ARABIA SAUDÍ": "🇸🇦",
+    "PANAMÁ": "🇵🇦", "NUEVA ZELANDA": "🇳🇿", "IRAK": "🇮🇶", "CABO VERDE": "🇨🇻", "CURACAO": "🇨🇼",
+    "UZBEQUISTÁN": "🇺🇿", "JORDANIA": "🇯🇴", "HAITÍ": "🇭🇹"
+}
+
+def flag(eq): return BANDERAS.get(eq, "🏳️")
+
+VALOR_EQUIPOS = {
+    "ESPAÑA":29,"FRANCIA":27,"INGLATERRA":26,"BRASIL":24,"ARGENTINA":24,"PORTUGAL":20,"ALEMANIA":20,"PAÍSES BAJOS":19,"NORUEGA":18,"BÉLGICA":17,
+    "COLOMBIA":17,"JAPÓN":15,"USA":14,"MARRUECOS":14,"URUGUAY":14,"SUIZA":13,"MÉXICO":13,"CROACIA":13,"TURQUÍA":11,"ECUADOR":10,
+    "SENEGAL":10,"SUECIA":9,"CANADÁ":9,"AUSTRIA":9,"PARAGUAY":8,"ESCOCIA":8,"BOSNIA HERZEG.":8,"COSTA MARFIL":7,"EGIPTO":7,"CHEQUIA":7,
+    "GHANA":6,"ARGELIA":6,"COREA DEL SUR":5,"TÚNEZ":5,"AUSTRALIA":5,"IRÁN":4,"CONGO":3,"SUDÁFRICA":3,"CATAR":3,"ARABIA SAUDÍ":2,
+    "PANAMÁ":2,"NUEVA ZELANDA":2,"IRAK":2,"CABO VERDE":2,"CURACAO":2,"UZBEQUISTÁN":2,"JORDANIA":1,"HAITÍ":0
+}
+
+GRUPOS = {
+    "A":["MÉXICO","SUDÁFRICA","COREA DEL SUR","CHEQUIA"],"B":["CANADÁ","BOSNIA HERZEG.","CATAR","SUIZA"],"C":["BRASIL","MARRUECOS","HAITÍ","ESCOCIA"],"D":["USA","PARAGUAY","AUSTRALIA","TURQUÍA"],
+    "E":["ALEMANIA","CURACAO","COSTA MARFIL","ECUADOR"],"F":["PAÍSES BAJOS","JAPÓN","SUECIA","TÚNEZ"],"G":["BÉLGICA","EGIPTO","IRÁN","NUEVA ZELANDA"],"H":["ESPAÑA","CABO VERDE","ARABIA SAUDÍ","URUGUAY"],
+    "I":["FRANCIA","SENEGAL","IRAK","NORUEGA"],"J":["ARGENTINA","ARGELIA","AUSTRIA","JORDANIA"],"K":["PORTUGAL","CONGO","UZBEQUISTÁN","COLOMBIA"],"L":["INGLATERRA","CROACIA","GHANA","PANAMÁ"]
+}
+
 EMPAREJAMIENTOS_16VOS = {"M73":("2A","2B"),"M74":("1E","3_1"),"M75":("1F","2C"),"M76":("1C","2F"),"M77":("1I","3_2"),"M78":("2E","2I"),"M79":("1A","3_3"),"M80":("1L","3_4"),"M81":("1D","3_5"),"M82":("1G","3_6"),"M83":("2K","2L"),"M84":("1H","2J"),"M85":("1B","3_7"),"M86":("1J","2H"),"M87":("1K","3_8"),"M88":("2D","2G")}
 CRUCES_OCTAVOS = {"M89":("M74","M77"),"M90":("M73","M75"),"M91":("M76","M78"),"M92":("M79","M80"),"M93":("M83","M84"),"M94":("M81","M82"),"M95":("M85","M87"),"M96":("M86","M88")}
 CRUCES_CUARTOS = {"M97":("M89","M90"),"M98":("M93","M94"),"M99":("M91","M92"),"M100":("M95","M96")}
 CRUCES_SEMIS = {"M101":("M97","M98"),"M102":("M99","M100")}
 CRUCES_FINALES = {"M103 (3º y 4º)":("M101_L","M102_L"),"M104 (FINAL)":("M101","M102")}
 DIAS_INICIO = {"A":11,"B":12,"C":13,"D":13,"E":14,"F":14,"G":15,"H":15,"I":16,"J":16,"K":17,"L":17}
-
-def flag(eq): return BANDERAS.get(eq, "🏳️")
 
 def obtener_fecha_grupo(eA, eB, grupo):
     if eA=="ESPAÑA" and eB=="CABO VERDE": return "15 Jun - 18:00"
@@ -126,10 +150,12 @@ def borrar_goleador_real(jug):
 
 
 # ══════════════════════════════════════════
-# LOGIN Y PANTALLA PRINCIPAL
+# CONTROL DE ESTADO (LOGIN Y NAVEGACIÓN)
 # ══════════════════════════════════════════
 if "liga_actual" not in st.session_state: st.session_state.liga_actual = ""
 if "admin" not in st.session_state: st.session_state.admin = False
+if "menu_seleccionado" not in st.session_state: st.session_state.menu_seleccionado = "📊 Clasificación General"
+if "jugador_detalle" not in st.session_state: st.session_state.jugador_detalle = None
 
 if not st.session_state.liga_actual:
     st.markdown("""
@@ -234,7 +260,6 @@ def calcular_puntos(df):
         if m_id=="M103 (3º y 4º)": det[gan]["Eliminatorias"]+=3; continue
         if dif>=3: det[eA]["Eliminatorias"]+=1; det[eB]["Eliminatorias"]-=1
         elif dif<=-3: det[eB]["Eliminatorias"]+=1; det[eA]["Eliminatorias"]-=1
-        
         if res=="90 min":
             if dif>0: det[eA]["Eliminatorias"]+=4
             elif dif<0: det[eB]["Eliminatorias"]+=4
@@ -243,7 +268,6 @@ def calcular_puntos(df):
             elif dif<0: det[eB]["Eliminatorias"]+=3
         elif res=="Penaltis":
             det[eA]["Eliminatorias"]+=1; det[eB]["Eliminatorias"]+=1; det[gan]["Eliminatorias"]+=1
-            
         if m_id=="M104 (FINAL)": det[gan]["Eliminatorias"]+=10; det[eB if gan==eA else eA]["Eliminatorias"]+=6
             
     if pichichi: det[pichichi]["Pichichi"]+=2
@@ -259,18 +283,31 @@ clasificacion_ordenada = sorted(lista_clasif, key=lambda x: x["Puntos"], reverse
 
 
 # ══════════════════════════════════════════
-# MENÚ SUPERIOR
+# MENÚ SUPERIOR (CON TELETRANSPORTE)
 # ══════════════════════════════════════════
 col_title, col_btn = st.columns([3, 1])
 with col_title: st.markdown(f"<h3 style='color:#FFD700; margin:0; padding-top:5px;'>🏆 Liga: {liga_actual}</h3>", unsafe_allow_html=True)
 with col_btn:
-    if st.button("🚪 Salir", use_container_width=True): st.session_state.liga_actual = ""; st.rerun()
+    if st.button("🚪 Salir", use_container_width=True): 
+        st.session_state.liga_actual = ""
+        st.session_state.menu_seleccionado = "📊 Clasificación General"
+        st.rerun()
 
 st.write("")
 opciones_menu = ["📊 Clasificación General", "👤 Detalle por Jugador", "🔥 Tabla de Goleadores", "🏆 Tabla de Grupos", "📅 Resultados Partidos", "⚽ Cuadro Eliminatorias"]
 if st.session_state.admin: opciones_menu += ["--- ZONA ADMIN ---", "👥 Participantes", "🔧 Resultados Grupos", "⚔️ Resultados Elim.", "🥇 Pichichi Equipo", "🎯 Pichichis Jugadores", "➕ Ajuste Puntos"]
 
-menu = st.selectbox("👉 Elige qué quieres ver:", opciones_menu)
+# Recuperamos el menú donde nos habíamos quedado
+try: idx_menu = opciones_menu.index(st.session_state.menu_seleccionado)
+except ValueError: idx_menu = 0
+
+menu = st.selectbox("👉 Elige qué quieres ver:", opciones_menu, index=idx_menu)
+
+# Si el usuario cambia el menú manualmente, actualizamos el estado
+if menu != st.session_state.menu_seleccionado:
+    st.session_state.menu_seleccionado = menu
+    st.rerun()
+
 if menu == "--- ZONA ADMIN ---": st.info("👆 Selecciona una herramienta de admin arriba."); st.stop()
 
 
@@ -284,27 +321,41 @@ if menu == "📊 Clasificación General":
     else:
         for i, row in enumerate(clasificacion_ordenada):
             med = ["🥇","🥈","🥉"][i] if i < 3 else f"#{i+1}"
+            eq_str = " ".join([f"{flag(e)}" for e in row["Equipos"]])
+            ext_bdg = f'<span style="font-size:0.5em; background:rgba(255,255,255,0.2); padding:2px 5px; border-radius:4px; margin-left:10px;">Ajuste: {row["Extra"]} pts</span>' if row["Extra"]!=0 else ""
+            
+            # Tarjeta de jugador
             st.markdown(f"""
-            <div class="fila-clasificacion">
-                <div style="font-size: 1.2em; font-weight: bold; color: white;">
-                    <span style="display:inline-block; width: 35px; color:#aaa;">{med}</span> {row["Jugador"]}
+            <div class="card">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div><span style="font-size:1.5em">{med}</span><span style="font-size:1.3em; font-weight:700; margin-left:10px; color:white;">{row["Jugador"]}</span>{ext_bdg}<br><small style="color:#aaa;">{eq_str}</small></div>
+                    <div style="font-size:2em; font-weight:900; color:#FFD700">{row["Puntos"]}<span style="font-size:0.4em; color:#aaa;"> pts</span></div>
                 </div>
-                <div style="font-size: 1.5em; font-weight: 900; color: #FFD700;">
-                    {row["Puntos"]} <span style="font-size: 0.5em; color: #aaa;">pts</span>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-        st.caption("Ve a la pestaña '👤 Detalle por Jugador' para ver los puntos y partidos de cada uno.")
+            </div>""", unsafe_allow_html=True)
+            
+            # Botón de teletransporte debajo de la tarjeta
+            if st.button(f"🔍 Ver detalle de {row['Jugador']}", key=f"ver_{row['Jugador']}", use_container_width=True):
+                st.session_state.menu_seleccionado = "👤 Detalle por Jugador"
+                st.session_state.jugador_detalle = row["Jugador"]
+                st.rerun()
 
 elif menu == "👤 Detalle por Jugador":
     st.markdown('<div class="titulo-principal">👤 Detalle por Jugador</div>', unsafe_allow_html=True)
     if not participantes: st.warning("Aún no hay participantes.")
     else:
         nombres = [r["Jugador"] for r in clasificacion_ordenada]
-        jug_sel = st.selectbox("Selecciona un amigo:", nombres)
+        
+        # Teletransporte: seleccionamos por defecto al amigo elegido en la pestaña anterior
+        idx_jug = nombres.index(st.session_state.jugador_detalle) if st.session_state.jugador_detalle in nombres else 0
+        jug_sel = st.selectbox("Selecciona un amigo:", nombres, index=idx_jug)
+        
+        # Si cambia el selector, actualizamos para la próxima
+        if jug_sel != st.session_state.jugador_detalle:
+            st.session_state.jugador_detalle = jug_sel
+            
         row = next(item for item in clasificacion_ordenada if item["Jugador"] == jug_sel)
         
-        st.markdown(f"<h3 style='color: white;'>🛡️ Equipos de {jug_sel}</h3>", unsafe_allow_html=True)
+        st.markdown(f"<h3 style='color: white;'>🛡️ Selecciones ({row['Puntos']} pts)</h3>", unsafe_allow_html=True)
         for eq in row["Equipos"]:
             det = detalles_globales[eq]
             desglose = []
@@ -510,6 +561,3 @@ elif menu == "➕ Ajuste Puntos":
     if p_sel:
         nv = st.number_input("Puntos extra:", value=ajustes_manuales.get(p_sel, 0))
         if st.button("💾 Aplicar"): guardar_ajuste_puntos(liga_actual, p_sel, nv); st.rerun()
-
-st.write("")
-st.write("")
