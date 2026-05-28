@@ -312,7 +312,7 @@ if menu == "📊 Clasificación General":
             # Padding para alinear: nombre relleno con espacios hasta max_len
             nombre_pad = row['Jugador'].ljust(max_len)
             pts_str = f"{row['Puntos']} pts"
-            titulo_fila = f"{med}  {nombre_pad}  {pts_str}"
+            titulo_fila = f"{med}  {row['Jugador']:<18}{row['Puntos']:>4} pts"
 
             with st.expander(titulo_fila):
                 st.markdown(f"**🛡️ Selecciones de {row['Jugador']}**")
