@@ -51,7 +51,7 @@ st.markdown("""
 ADMIN_PASSWORD = st.secrets["ADMIN_PASSWORD"]
 
 BANDERAS = {
-    "ESPAÑA": "🇪🇸💩", "FRANCIA": "🇫🇷", "INGLATERRA": "🏴󠁧󠁢󠁥󠁮󠁧󠁿", "BRASIL": "🇧🇷", "ARGENTINA": "🇦🇷",
+    "ESPAÑA": "🇪🇸❌", "FRANCIA": "🇫🇷", "INGLATERRA": "🏴󠁧󠁢󠁥󠁮󠁧󠁿", "BRASIL": "🇧🇷", "ARGENTINA": "🇦🇷",
     "PORTUGAL": "🇵🇹", "ALEMANIA": "🇩🇪", "PAÍSES BAJOS": "🇳🇱", "NORUEGA": "🇳🇴", "BÉLGICA": "🇧🇪",
     "COLOMBIA": "🇨🇴", "JAPÓN": "🇯🇵", "USA": "🇺🇸", "MARRUECOS": "🇲🇦", "URUGUAY": "🇺🇾",
     "SUIZA": "🇨🇭", "MÉXICO": "🇲🇽", "CROACIA": "🇭🇷", "TURQUÍA": "🇹🇷", "ECUADOR": "🇪🇨",
@@ -104,6 +104,41 @@ CRUCES_OCTAVOS  = {"M89":("M74","M77"),"M90":("M73","M75"),"M91":("M76","M78"),"
 CRUCES_CUARTOS  = {"M97":("M89","M90"),"M98":("M93","M94"),"M99":("M91","M92"),"M100":("M95","M96")}
 CRUCES_SEMIS    = {"M101":("M97","M98"),"M102":("M99","M100")}
 CRUCES_FINALES  = {"M103 (3º y 4º)":("M101_L","M102_L"),"M104 (FINAL)":("M101","M102")}
+
+# --- ALGORITMO AUTOMÁTICO DE FECHAS Y HORARIOS ---
+DIAS_INICIO = {"A": 11, "B": 12, "C": 13, "D": 13, "E": 14, "F": 14, "G": 15, "H": 15, "I": 16, "J": 16, "K": 17, "L": 17}
+
+def obtener_fecha_grupo(eA, eB, grupo):
+    # Días concretos para los partidos de España
+    if eA == "ESPAÑA" and eB == "CABO VERDE": return "15 Jun - 18:00"
+    if eA == "ESPAÑA" and eB == "ARABIA SAUDÍ": return "21 Jun - 18:00"
+    if eA == "ESPAÑA" and eB == "URUGUAY": return "25 Jun - 22:00"
+    
+    # Resto de los grupos
+    eqs = GRUPOS[grupo]
+    base = DIAS_INICIO.get(grupo, 11)
+    
+    if (eA, eB) == (eqs[0], eqs[1]): dia = base; hora = "21:00"
+    elif (eA, eB) == (eqs[2], eqs[3]): dia = base + 1; hora = "18:00"
+    elif (eA, eB) == (eqs[0], eqs[2]): dia = base + 5; hora = "21:00"
+    elif (eA, eB) == (eqs[1], eqs[3]): dia = base + 6; hora = "18:00"
+    elif (eA, eB) == (eqs[0], eqs[3]): dia = base + 9; hora = "22:00"
+    else: dia = base + 9; hora = "18:00"
+    
+    mes = "Jul" if dia > 30 else "Jun"
+    dia = dia - 30 if dia > 30 else dia
+    return f"{dia} {mes} - {hora}"
+
+FECHAS_ELIM = {
+    "M73": "28 Jun - 18:00", "M74": "28 Jun - 22:00", "M75": "29 Jun - 18:00", "M76": "29 Jun - 22:00",
+    "M77": "30 Jun - 18:00", "M78": "30 Jun - 22:00", "M79": "1 Jul - 18:00", "M80": "1 Jul - 22:00",
+    "M81": "2 Jul - 18:00", "M82": "2 Jul - 22:00", "M83": "3 Jul - 18:00", "M84": "3 Jul - 22:00",
+    "M85": "4 Jul - 18:00", "M86": "4 Jul - 22:00", "M87": "5 Jul - 18:00", "M88": "5 Jul - 22:00",
+    "M89": "6 Jul - 18:00", "M90": "6 Jul - 22:00", "M91": "7 Jul - 18:00", "M92": "7 Jul - 22:00",
+    "M93": "8 Jul - 18:00", "M94": "8 Jul - 22:00", "M95": "9 Jul - 18:00", "M96": "9 Jul - 22:00",
+    "M97": "11 Jul - 18:00", "M98": "11 Jul - 22:00", "M99": "12 Jul - 18:00", "M100": "12 Jul - 22:00",
+    "M101": "14 Jul - 21:00", "M102": "15 Jul - 21:00", "M103 (3º y 4º)": "18 Jul - 21:00", "M104 (FINAL)": "19 Jul - 21:00"
+}
 
 @st.cache_resource
 def get_supabase():
@@ -181,7 +216,7 @@ def guardar_ajuste_puntos(nombre, puntos_extra):
         sb.table("ajustes_puntos").upsert({"nombre": nombre, "puntos_extra": puntos_extra}).execute()
         cargar_ajustes_puntos.clear()
     except Exception as e:
-        st.error("Error: Asegúrate de crear la tabla 'ajustes_puntos' en Supabase.")
+        pass
 
 if "admin" not in st.session_state:
     st.session_state.admin = False
@@ -222,7 +257,6 @@ def obtener_clasificados(df_tabla):
 
 def calcular_puntos(df_tabla):
     puntos = {eq:0 for eq in VALOR_EQUIPOS.keys()}
-    # Creamos un "diccionario" extra para apuntar de dónde viene cada punto
     detalles = {eq: {"Gr(Partidos)":0, "Gr(Goles)":0, "Gr(Bono)":0, "Eliminatorias":0, "Pichichi":0} for eq in VALOR_EQUIPOS.keys()}
     
     for p in resultados_grupos.values():
@@ -268,7 +302,6 @@ def calcular_puntos(df_tabla):
             
     if pichichi: detalles[pichichi]["Pichichi"]+=2
     
-    # Sumamos los detalles para sacar el total de cada equipo
     for eq in VALOR_EQUIPOS.keys():
         puntos[eq] = sum(detalles[eq].values())
         
@@ -311,7 +344,7 @@ with st.sidebar:
 # CLASIFICACIÓN GENERAL
 # ══════════════════════════════════════════
 if menu == "📊 Clasificación General":
-    st.image("https://fotografias.antena3.com/clipping/cmsimages02/2022/12/19/57017F2A-8327-404D-8997-5C37A44CDC03/messi-replica-iconica-imagen-maradona-copa-mundo_97.jpg?crop=4096,2304,x0,y0&width=1600&height=900&optimize=low&format=webply.jpg", use_container_width=True)
+    st.image("https://upload.wikimedia.org/wikipedia/commons/b/b4/Lionel-Messi-Argentina-2022.jpg", use_container_width=True)
     st.markdown('<div class="titulo-principal">📊 Clasificación General</div>', unsafe_allow_html=True)
     st.write("")
     if not participantes:
@@ -332,12 +365,10 @@ if menu == "📊 Clasificación General":
             med = medallas[i] if i < 3 else f"#{i+1}"
             equipos_str = " ".join([f"{flag(e)}" for e in row["Equipos"]])
             nombres_str = ", ".join(row["Equipos"])
-            
             extra_badge = f'<span style="font-size:0.5em; background:rgba(255,255,255,0.2); padding:2px 5px; border-radius:4px; margin-left:10px;">Ajuste: {row["Extra"]} pts</span>' if row["Extra"] != 0 else ""
 
             st.markdown(f'<div class="card" style="margin-bottom: 0px;"><div style="display:flex; justify-content:space-between; align-items:center;"><div><span style="font-size:1.5em">{med}</span><span style="font-size:1.3em; font-weight:700; margin-left:10px; color:white;">{row["Jugador"]}</span>{extra_badge}<br><small style="color:#888">{equipos_str} {nombres_str}</small></div><div style="font-size:2em; font-weight:900; color:#FFD700">{row["Puntos"]}<span style="font-size:0.4em; color:#888"> pts</span></div></div></div>', unsafe_allow_html=True)
             
-            # DESPLEGABLE 1: Detalle de los Puntos
             with st.expander(f"🔍 Ver detalle de puntos de {row['Jugador']}"):
                 for eq in row["Equipos"]:
                     det = detalles[eq]
@@ -348,47 +379,49 @@ if menu == "📊 Clasificación General":
                     if det['Eliminatorias'] != 0: desglose.append(f"Eliminatorias: {det['Eliminatorias']}")
                     if det['Pichichi'] != 0: desglose.append(f"Pichichi: {det['Pichichi']}")
                     
-                    if not desglose:
-                        str_desglose = "Aún sin puntos"
-                    else:
-                        str_desglose = " · ".join(desglose)
-                        
+                    str_desglose = " · ".join(desglose) if desglose else "Aún sin puntos"
                     st.write(f"{flag(eq)} **{eq}** (`{pts[eq]} pts`) ➜ <span style='font-size:0.85em; color:#aaa;'>{str_desglose}</span>", unsafe_allow_html=True)
                 
                 if row["Extra"] != 0:
                     st.write(f"➕ **Ajuste manual**: `{row['Extra']} pts`")
 
-            # DESPLEGABLE 2: Partidos Jugados
-            with st.expander(f"⚽ Ver partidos jugados por las selecciones de {row['Jugador']}"):
+            with st.expander(f"⚽ Ver calendario y partidos de {row['Jugador']}"):
                 html_partidos = ""
                 
-                # Buscamos en los partidos de la Fase de Grupos
-                for p in resultados_grupos.values():
-                    eA, eB = p['equipo_A'], p['equipo_B']
-                    if eA in row["Equipos"] or eB in row["Equipos"]:
-                        col_A = "#FFD700" if eA in row["Equipos"] else "#888"
-                        bold_A = "bold" if eA in row["Equipos"] else "normal"
-                        col_B = "#FFD700" if eB in row["Equipos"] else "#888"
-                        bold_B = "bold" if eB in row["Equipos"] else "normal"
-                        
-                        html_partidos += f"<div style='display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px dashed #2d3748; font-size:0.9em;'><span style='color:{col_A}; font-weight:{bold_A}; width:40%; text-align:right;'>{flag(eA)} {eA}</span> <span style='background:#1e2530; border: 1px solid #333; padding:2px 10px; border-radius:6px; color:white; font-weight:bold;'>{p['goles_A']} - {p['goles_B']}</span> <span style='color:{col_B}; font-weight:{bold_B}; width:40%; text-align:left;'>{eB} {flag(eB)}</span></div>"
-                
-                # Buscamos en las Eliminatorias
+                for g, equipos in GRUPOS.items():
+                    cruces_g = [(equipos[0],equipos[1]), (equipos[2],equipos[3]), (equipos[0],equipos[2]), (equipos[1],equipos[3]), (equipos[0],equipos[3]), (equipos[1],equipos[2])]
+                    for eA, eB in cruces_g:
+                        if eA in row["Equipos"] or eB in row["Equipos"]:
+                            fecha_str = obtener_fecha_grupo(eA, eB, g)
+                            key = f"{eA}_{eB}"
+                            col_A = "#FFD700" if eA in row["Equipos"] else "#888"
+                            bold_A = "bold" if eA in row["Equipos"] else "normal"
+                            col_B = "#FFD700" if eB in row["Equipos"] else "#888"
+                            bold_B = "bold" if eB in row["Equipos"] else "normal"
+                            
+                            if key in resultados_grupos:
+                                p = resultados_grupos[key]
+                                html_partidos += f"<div style='display:flex; flex-direction:column; padding:6px 0; border-bottom:1px dashed #2d3748;'><div style='font-size:0.65em; color:#888; text-align:center;'>🕒 {fecha_str} - Grupo {g}</div><div style='display:flex; justify-content:space-between; align-items:center; font-size:0.9em;'><span style='color:{col_A}; font-weight:{bold_A}; width:40%; text-align:right;'>{flag(eA)} {eA}</span> <span style='background:#1e2530; border: 1px solid #333; padding:2px 10px; border-radius:6px; color:white; font-weight:bold;'>{p['goles_A']} - {p['goles_B']}</span> <span style='color:{col_B}; font-weight:{bold_B}; width:40%; text-align:left;'>{eB} {flag(eB)}</span></div></div>"
+                            else:
+                                html_partidos += f"<div style='display:flex; flex-direction:column; padding:6px 0; border-bottom:1px dashed #2d3748;'><div style='font-size:0.65em; color:#888; text-align:center;'>🕒 {fecha_str} - Grupo {g}</div><div style='display:flex; justify-content:space-between; align-items:center; font-size:0.9em;'><span style='color:{col_A}; font-weight:{bold_A}; width:40%; text-align:right;'>{flag(eA)} {eA}</span> <span style='color:#555;'>vs</span> <span style='color:{col_B}; font-weight:{bold_B}; width:40%; text-align:left;'>{eB} {flag(eB)}</span></div></div>"
+                                
                 for m_id, p in resultados_elim.items():
                     eA, eB = p['equipo_A'], p['equipo_B']
                     if eA in row["Equipos"] or eB in row["Equipos"]:
+                        fecha_elim = FECHAS_ELIM.get(m_id, "")
                         col_A = "#FFD700" if eA in row["Equipos"] else "#888"
                         bold_A = "bold" if eA in row["Equipos"] else "normal"
                         col_B = "#FFD700" if eB in row["Equipos"] else "#888"
                         bold_B = "bold" if eB in row["Equipos"] else "normal"
                         res_extra = f"<br><span style='font-size:0.7em; color:#888;'>{p['resolucion']}</span>" if p['resolucion'] != "90 min" else ""
                         
-                        html_partidos += f"<div style='display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px dashed #2d3748; font-size:0.9em;'><span style='color:{col_A}; font-weight:{bold_A}; width:40%; text-align:right;'>{flag(eA)} {eA}</span> <span style='background:#1e2530; border: 1px solid #333; padding:2px 10px; border-radius:6px; color:white; font-weight:bold; text-align:center;'>{p['goles_A']} - {p['goles_B']}{res_extra}</span> <span style='color:{col_B}; font-weight:{bold_B}; width:40%; text-align:left;'>{eB} {flag(eB)}</span></div>"
+                        html_partidos += f"<div style='display:flex; flex-direction:column; padding:6px 0; border-bottom:1px dashed #2d3748;'><div style='font-size:0.65em; color:#888; text-align:center;'>🕒 {fecha_elim} - {m_id}</div><div style='display:flex; justify-content:space-between; align-items:center; font-size:0.9em;'><span style='color:{col_A}; font-weight:{bold_A}; width:40%; text-align:right;'>{flag(eA)} {eA}</span> <span style='background:#1e2530; border: 1px solid #333; padding:2px 10px; border-radius:6px; color:white; font-weight:bold; text-align:center;'>{p['goles_A']} - {p['goles_B']}{res_extra}</span> <span style='color:{col_B}; font-weight:{bold_B}; width:40%; text-align:left;'>{eB} {flag(eB)}</span></div></div>"
                 
                 if html_partidos == "":
-                    st.caption("Aún no han jugado ningún partido.")
+                    st.caption("Aún no tienen partidos.")
                 else:
                     st.markdown(html_partidos, unsafe_allow_html=True)
+
 # ══════════════════════════════════════════
 # TABLA DE GRUPOS
 # ══════════════════════════════════════════
@@ -448,11 +481,13 @@ elif menu == "📅 Resultados Partidos":
             html_partidos = ""
             for eA, eB in cruces:
                 key = f"{eA}_{eB}"
+                fecha_str = obtener_fecha_grupo(eA, eB, g)
+                
                 if key in resultados_grupos:
                     r = resultados_grupos[key]
-                    html_partidos += f'<div style="display:grid; grid-template-columns: 1fr auto 1fr; gap:10px; align-items:center; padding:8px 0; border-bottom:1px solid #2d3748; font-size:0.9em;"><span style="color:white; text-align:right;">{flag(eA)} {eA}</span> <span style="background:#FFD700; color:#000; padding:2px 8px; border-radius:4px; font-weight:bold; text-align:center;">{r["goles_A"]} - {r["goles_B"]}</span> <span style="color:white; text-align:left;">{eB} {flag(eB)}</span></div>'
+                    html_partidos += f'<div style="display:flex; flex-direction:column; border-bottom:1px solid #2d3748; padding: 6px 0;"><div style="font-size:0.65em; color:#888; text-align:center; margin-bottom:2px;">🕒 {fecha_str}</div><div style="display:grid; grid-template-columns: 1fr auto 1fr; gap:10px; align-items:center; font-size:0.9em;"><span style="color:white; text-align:right;">{flag(eA)} {eA}</span> <span style="background:#FFD700; color:#000; padding:2px 8px; border-radius:4px; font-weight:bold; text-align:center;">{r["goles_A"]} - {r["goles_B"]}</span> <span style="color:white; text-align:left;">{eB} {flag(eB)}</span></div></div>'
                 else:
-                    html_partidos += f'<div style="display:grid; grid-template-columns: 1fr auto 1fr; gap:10px; align-items:center; padding:8px 0; border-bottom:1px solid #2d3748; color:#888; font-size:0.9em;"><span style="text-align:right;">{flag(eA)} {eA}</span> <span style="text-align:center; color:#888;">vs</span> <span style="text-align:left;">{eB} {flag(eB)}</span></div>'
+                    html_partidos += f'<div style="display:flex; flex-direction:column; border-bottom:1px solid #2d3748; padding: 6px 0;"><div style="font-size:0.65em; color:#888; text-align:center; margin-bottom:2px;">🕒 {fecha_str}</div><div style="display:grid; grid-template-columns: 1fr auto 1fr; gap:10px; align-items:center; font-size:0.9em;"><span style="text-align:right; color:#888;">{flag(eA)} {eA}</span> <span style="text-align:center; color:#555;">vs</span> <span style="text-align:left; color:#888;">{eB} {flag(eB)}</span></div></div>'
             st.markdown(f'<div class="card" style="padding:10px;">{html_partidos}</div>', unsafe_allow_html=True)
         col_idx += 1
 
@@ -465,10 +500,15 @@ elif menu == "📅 Resultados Partidos":
         for i, (m_id, r) in enumerate(resultados_elim.items()):
             eA, eB = r['equipo_A'], r['equipo_B']
             ganador = r['ganador']
+            fecha_elim = FECHAS_ELIM.get(m_id, "")
+            
             with [c1_elim, c2_elim][i % 2]:
                 st.markdown(f"""
                 <div class="card" style="padding:15px; margin-bottom:10px;">
-                    <div style="font-size:0.8em; color:#888; margin-bottom:5px;">{m_id} · {r['resolucion']}</div>
+                    <div style="display:flex; justify-content:space-between; font-size:0.8em; color:#888; margin-bottom:5px;">
+                        <span>{m_id} · {r['resolucion']}</span>
+                        <span>🕒 {fecha_elim}</span>
+                    </div>
                     <div style="display:flex; justify-content:space-between; align-items:center;">
                         <span style="font-weight:{'bold' if ganador==eA else 'normal'}; color:{'#FFD700' if ganador==eA else 'white'};">{flag(eA)} {eA}</span>
                         <span style="background:#FFD700; color:#000; padding:4px 10px; border-radius:6px; font-weight:bold; font-size:1.1em;">{r['goles_A']} - {r['goles_B']}</span>
@@ -492,10 +532,11 @@ elif menu == "⚽ Cuadro Eliminatorias":
         d = resultados_elim.get(m_id)
         fA = flag(eA) if eA in VALOR_EQUIPOS else "❓"
         fB = flag(eB) if eB in VALOR_EQUIPOS else "❓"
+        fecha_elim = FECHAS_ELIM.get(m_id, "")
         if d:
             gan = d['ganador']
             st.markdown(f"""<div class="card" style="padding:12px">
-                <div style="font-size:0.75em;color:#888;margin-bottom:4px">{m_id}</div>
+                <div style="display:flex; justify-content:space-between; font-size:0.75em;color:#888;margin-bottom:4px"><span>{m_id}</span> <span>🕒 {fecha_elim}</span></div>
                 <div style="display:flex;justify-content:space-between;align-items:center">
                     <span style="{'font-weight:900;color:#FFD700' if gan==eA else 'color:#888'}">{fA} {eA}</span>
                     <span class="resultado-badge">{d['goles_A']} - {d['goles_B']}</span>
@@ -505,7 +546,7 @@ elif menu == "⚽ Cuadro Eliminatorias":
             </div>""", unsafe_allow_html=True)
         else:
             st.markdown(f"""<div class="card" style="padding:12px;border:1px dashed #2d3748">
-                <div style="font-size:0.75em;color:#888;margin-bottom:4px">{m_id}</div>
+                <div style="display:flex; justify-content:space-between; font-size:0.75em;color:#888;margin-bottom:4px"><span>{m_id}</span> <span>🕒 {fecha_elim}</span></div>
                 <div style="display:flex;justify-content:space-between;align-items:center;color:#555">
                     <span>{fA} {eA}</span>
                     <span style="color:#333">vs</span>
@@ -688,5 +729,3 @@ elif menu == "➕ Ajuste Puntos":
             guardar_ajuste_puntos(participante_sel, nuevo_valor)
             st.success(f"Ajuste de {nuevo_valor} pts guardado para {participante_sel}.")
             st.rerun()
-
-# --- FIN DEL ARCHIVO ---
