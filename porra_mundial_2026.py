@@ -221,15 +221,17 @@ def obtener_clasificados(df_tabla):
     return posiciones
 
 def calcular_puntos(df_tabla):
-    puntos={eq:0 for eq in VALOR_EQUIPOS.keys()}
+    puntos = {eq:0 for eq in VALOR_EQUIPOS.keys()}
+    # Creamos un "diccionario" extra para apuntar de dónde viene cada punto
+    detalles = {eq: {"Gr(Partidos)":0, "Gr(Goles)":0, "Gr(Bono)":0, "Eliminatorias":0, "Pichichi":0} for eq in VALOR_EQUIPOS.keys()}
     
     for p in resultados_grupos.values():
         eA,eB=p['equipo_A'],p['equipo_B']; dif=p['goles_A']-p['goles_B']
-        if dif>=3: puntos[eA]+=1; puntos[eB]-=1
-        elif dif<=-3: puntos[eB]+=1; puntos[eA]-=1
-        if dif>0: puntos[eA]+=3
-        elif dif<0: puntos[eB]+=3
-        else: puntos[eA]+=1; puntos[eB]+=1
+        if dif>=3: detalles[eA]["Gr(Goles)"]+=1; detalles[eB]["Gr(Goles)"]-=1
+        elif dif<=-3: detalles[eB]["Gr(Goles)"]+=1; detalles[eA]["Gr(Goles)"]-=1
+        if dif>0: detalles[eA]["Gr(Partidos)"]+=3
+        elif dif<0: detalles[eB]["Gr(Partidos)"]+=3
+        else: detalles[eA]["Gr(Partidos)"]+=1; detalles[eB]["Gr(Partidos)"]+=1
         
     terceros_bono=[]
     
@@ -238,34 +240,39 @@ def calcular_puntos(df_tabla):
         eqs=df_tabla[df_tabla['Grupo']==g].to_dict('records')
         
         if len(partidos) == 6 and len(eqs) == 4:
-            puntos[eqs[0]['Equipo']]+=3; puntos[eqs[1]['Equipo']]+=2
-            puntos[eqs[3]['Equipo']]-=1
+            detalles[eqs[0]['Equipo']]["Gr(Bono)"]+=3; detalles[eqs[1]['Equipo']]["Gr(Bono)"]+=2
+            detalles[eqs[3]['Equipo']]["Gr(Bono)"]-=1
             terceros_bono.append(eqs[2])
             
     terceros_bono=sorted(terceros_bono,key=lambda x:(x['Pts'],x['Dif'],x['GF']),reverse=True)
-    for i in range(min(8,len(terceros_bono))): puntos[terceros_bono[i]['Equipo']]+=1
+    for i in range(min(8,len(terceros_bono))): detalles[terceros_bono[i]['Equipo']]["Gr(Bono)"]+=1
     
     for m_id,p in resultados_elim.items():
         eA,eB,res,gan=p['equipo_A'],p['equipo_B'],p['resolucion'],p['ganador']
         dif=p['goles_A']-p['goles_B']
-        if m_id=="M103 (3º y 4º)": puntos[gan]+=3; continue
+        if m_id=="M103 (3º y 4º)": detalles[gan]["Eliminatorias"]+=3; continue
         
-        if dif>=3: puntos[eA]+=1; puntos[eB]-=1
-        elif dif<=-3: puntos[eB]+=1; puntos[eA]-=1
+        if dif>=3: detalles[eA]["Eliminatorias"]+=1; detalles[eB]["Eliminatorias"]-=1
+        elif dif<=-3: detalles[eB]["Eliminatorias"]+=1; detalles[eA]["Eliminatorias"]-=1
         
         if res=="90 min":
-            if dif>0: puntos[eA]+=4
-            elif dif<0: puntos[eB]+=4
+            if dif>0: detalles[eA]["Eliminatorias"]+=4
+            elif dif<0: detalles[eB]["Eliminatorias"]+=4
         elif res=="Prórroga":
-            if dif>0: puntos[eA]+=3
-            elif dif<0: puntos[eB]+=3
+            if dif>0: detalles[eA]["Eliminatorias"]+=3
+            elif dif<0: detalles[eB]["Eliminatorias"]+=3
         elif res=="Penaltis":
-            puntos[eA]+=1; puntos[eB]+=1; puntos[gan]+=1
+            detalles[eA]["Eliminatorias"]+=1; detalles[eB]["Eliminatorias"]+=1; detalles[gan]["Eliminatorias"]+=1
         if m_id=="M104 (FINAL)":
-            puntos[gan]+=10; puntos[eB if gan==eA else eA]+=6
+            detalles[gan]["Eliminatorias"]+=10; detalles[eB if gan==eA else eA]["Eliminatorias"]+=6
             
-    if pichichi: puntos[pichichi]+=2
-    return puntos
+    if pichichi: detalles[pichichi]["Pichichi"]+=2
+    
+    # Sumamos los detalles para sacar el total de cada equipo
+    for eq in VALOR_EQUIPOS.keys():
+        puntos[eq] = sum(detalles[eq].values())
+        
+    return puntos, detalles
 
 df_tabla   = obtener_tabla_grupos()
 pos_grupos = obtener_clasificados(df_tabla)
@@ -310,8 +317,8 @@ if menu == "📊 Clasificación General":
     if not participantes:
         st.warning("Aún no hay participantes registrados.")
     else:
-        # Calculamos los puntos que tiene cada equipo en este momento
-        pts = calcular_puntos(df_tabla)
+        # AHORA PEDIMOS LOS PUNTOS Y EL DESGLOSE DE DETALLES
+        pts, detalles = calcular_puntos(df_tabla)
         
         lista_clasif = []
         for a, eqs in participantes.items():
@@ -329,18 +336,28 @@ if menu == "📊 Clasificación General":
             
             extra_badge = f'<span style="font-size:0.5em; background:rgba(255,255,255,0.2); padding:2px 5px; border-radius:4px; margin-left:10px;">Ajuste: {row["Extra"]} pts</span>' if row["Extra"] != 0 else ""
 
-            # Tarjeta principal del jugador (le quitamos el margen inferior para que pegue con el desplegable)
             st.markdown(f'<div class="card" style="margin-bottom: 0px;"><div style="display:flex; justify-content:space-between; align-items:center;"><div><span style="font-size:1.5em">{med}</span><span style="font-size:1.3em; font-weight:700; margin-left:10px; color:white;">{row["Jugador"]}</span>{extra_badge}<br><small style="color:#888">{equipos_str} {nombres_str}</small></div><div style="font-size:2em; font-weight:900; color:#FFD700">{row["Puntos"]}<span style="font-size:0.4em; color:#888"> pts</span></div></div></div>', unsafe_allow_html=True)
             
-            # NUEVO: Desplegable con el desglose de puntos
             with st.expander(f"🔍 Ver detalle de puntos de {row['Jugador']}"):
                 for eq in row["Equipos"]:
-                    st.write(f"{flag(eq)} **{eq}**: `{pts[eq]} pts`")
+                    det = detalles[eq]
+                    desglose = []
+                    # Solo mostramos en la lista las cosas que estén sumando (o restando) puntos
+                    if det['Gr(Partidos)'] != 0: desglose.append(f"Fase Grupos: {det['Gr(Partidos)']}")
+                    if det['Gr(Goles)'] != 0: desglose.append(f"Goleadas Gr: {det['Gr(Goles)']}")
+                    if det['Gr(Bono)'] != 0: desglose.append(f"Bono Posición: {det['Gr(Bono)']}")
+                    if det['Eliminatorias'] != 0: desglose.append(f"Eliminatorias: {det['Eliminatorias']}")
+                    if det['Pichichi'] != 0: desglose.append(f"Pichichi: {det['Pichichi']}")
+                    
+                    if not desglose:
+                        str_desglose = "Aún sin puntos"
+                    else:
+                        str_desglose = " · ".join(desglose)
+                        
+                    st.write(f"{flag(eq)} **{eq}** (`{pts[eq]} pts`) ➜ <span style='font-size:0.85em; color:#aaa;'>{str_desglose}</span>", unsafe_allow_html=True)
                 
                 if row["Extra"] != 0:
                     st.write(f"➕ **Ajuste manual**: `{row['Extra']} pts`")
-                if pichichi and pichichi in row["Equipos"]:
-                    st.caption(f"*(Incluye +2 pts por tener a {pichichi} como Pichichi)*")
 # ══════════════════════════════════════════
 # TABLA DE GRUPOS
 # ══════════════════════════════════════════
