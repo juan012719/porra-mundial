@@ -20,7 +20,7 @@ st.markdown("""
     
     /* Botones blindados: Fondo dorado, letra negra siempre */
     button[kind="secondary"], button[kind="primary"], div.stButton > button {
-        background-color: #FFD700 !important; border: 2px solid #B8860B !important; border-radius: 8px !important; margin-top: -5px; margin-bottom: 15px;
+        background-color: #FFD700 !important; border: 2px solid #B8860B !important; border-radius: 8px !important; margin-bottom: 5px;
     }
     button[kind="secondary"] p, button[kind="primary"] p, div.stButton > button p {
         color: #000000 !important; font-weight: 900 !important; font-size: 1.1em !important;
@@ -31,51 +31,30 @@ st.markdown("""
     .titulo-landing { text-align: center; font-size: clamp(2.5em, 8vw, 4.5em); font-weight: 900; background: linear-gradient(90deg, #FFD700, #FF6B35, #FFD700); -webkit-background-clip: text; -webkit-text-fill-color: transparent; padding: 10px 0 10px 0; letter-spacing: 2px; }
     .subtitulo { text-align: center; color: #aaa !important; font-size: clamp(0.9em, 3vw, 1.2em); margin-bottom: 30px; letter-spacing: 5px; }
     
-    .card { background: linear-gradient(135deg, #1e2530, #252d3a); border: 1px solid #2d3748; border-radius: 12px; padding: 20px; margin: 10px 0 5px 0; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+    .card { background: linear-gradient(135deg, #1e2530, #252d3a); border: 1px solid #2d3748; border-radius: 12px; padding: 20px; margin: 10px 0; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
     .mini-card { background-color: #1e2530; border: 1px solid #333; border-radius: 8px; padding: 12px; margin-bottom: 8px; }
     .resultado-badge { background: #FFD700; color: #000 !important; border-radius: 6px; padding: 2px 8px; font-weight: bold; font-size: 0.9em; }
     
     .centrado-absoluto { max-width: 500px; margin: 15vh auto 0 auto; padding: 15px; }
+    
+    /* Fila compacta clasificación */
+    .fila-clasif { background-color: #1e2530; border: 1px solid #333; border-radius: 8px; padding: 10px 15px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
 </style>
 """, unsafe_allow_html=True)
 
 ADMIN_PASSWORD = st.secrets["ADMIN_PASSWORD"]
 
-BANDERAS = {
-    "ESPAÑA": "🇪🇸", "FRANCIA": "🇫🇷", "INGLATERRA": "🏴󠁧󠁢󠁥󠁮󠁧󠁿", "BRASIL": "🇧🇷", "ARGENTINA": "🇦🇷",
-    "PORTUGAL": "🇵🇹", "ALEMANIA": "🇩🇪", "PAÍSES BAJOS": "🇳🇱", "NORUEGA": "🇳🇴", "BÉLGICA": "🇧🇪",
-    "COLOMBIA": "🇨🇴", "JAPÓN": "🇯🇵", "USA": "🇺🇸", "MARRUECOS": "🇲🇦", "URUGUAY": "🇺🇾",
-    "SUIZA": "🇨🇭", "MÉXICO": "🇲🇽", "CROACIA": "🇭🇷", "TURQUÍA": "🇹🇷", "ECUADOR": "🇪🇨",
-    "SENEGAL": "🇸🇳", "SUECIA": "🇸🇪", "CANADÁ": "🇨🇦", "AUSTRIA": "🇦🇹", "PARAGUAY": "🇵🇾",
-    "ESCOCIA": "🏴󠁧󠁢󠁳󠁣󠁴󠁿", "BOSNIA HERZEG.": "🇧🇦", "COSTA MARFIL": "🇨🇮", "EGIPTO": "🇪🇬", "CHEQUIA": "🇨🇿",
-    "GHANA": "🇬🇭", "ARGELIA": "🇩🇿", "COREA DEL SUR": "🇰🇷", "TÚNEZ": "🇹🇳", "AUSTRALIA": "🇦🇺",
-    "IRÁN": "🇮🇷", "CONGO": "🇨🇬", "SUDÁFRICA": "🇿🇦", "CATAR": "🇶🇦", "ARABIA SAUDÍ": "🇸🇦",
-    "PANAMÁ": "🇵🇦", "NUEVA ZELANDA": "🇳🇿", "IRAK": "🇮🇶", "CABO VERDE": "🇨🇻", "CURACAO": "🇨🇼",
-    "UZBEQUISTÁN": "🇺🇿", "JORDANIA": "🇯🇴", "HAITÍ": "🇭🇹"
-}
-
-def flag(eq): return BANDERAS.get(eq, "🏳️")
-
-VALOR_EQUIPOS = {
-    "ESPAÑA":29,"FRANCIA":27,"INGLATERRA":26,"BRASIL":24,"ARGENTINA":24,"PORTUGAL":20,"ALEMANIA":20,"PAÍSES BAJOS":19,"NORUEGA":18,"BÉLGICA":17,
-    "COLOMBIA":17,"JAPÓN":15,"USA":14,"MARRUECOS":14,"URUGUAY":14,"SUIZA":13,"MÉXICO":13,"CROACIA":13,"TURQUÍA":11,"ECUADOR":10,
-    "SENEGAL":10,"SUECIA":9,"CANADÁ":9,"AUSTRIA":9,"PARAGUAY":8,"ESCOCIA":8,"BOSNIA HERZEG.":8,"COSTA MARFIL":7,"EGIPTO":7,"CHEQUIA":7,
-    "GHANA":6,"ARGELIA":6,"COREA DEL SUR":5,"TÚNEZ":5,"AUSTRALIA":5,"IRÁN":4,"CONGO":3,"SUDÁFRICA":3,"CATAR":3,"ARABIA SAUDÍ":2,
-    "PANAMÁ":2,"NUEVA ZELANDA":2,"IRAK":2,"CABO VERDE":2,"CURACAO":2,"UZBEQUISTÁN":2,"JORDANIA":1,"HAITÍ":0
-}
-
-GRUPOS = {
-    "A":["MÉXICO","SUDÁFRICA","COREA DEL SUR","CHEQUIA"],"B":["CANADÁ","BOSNIA HERZEG.","CATAR","SUIZA"],"C":["BRASIL","MARRUECOS","HAITÍ","ESCOCIA"],"D":["USA","PARAGUAY","AUSTRALIA","TURQUÍA"],
-    "E":["ALEMANIA","CURACAO","COSTA MARFIL","ECUADOR"],"F":["PAÍSES BAJOS","JAPÓN","SUECIA","TÚNEZ"],"G":["BÉLGICA","EGIPTO","IRÁN","NUEVA ZELANDA"],"H":["ESPAÑA","CABO VERDE","ARABIA SAUDÍ","URUGUAY"],
-    "I":["FRANCIA","SENEGAL","IRAK","NORUEGA"],"J":["ARGENTINA","ARGELIA","AUSTRIA","JORDANIA"],"K":["PORTUGAL","CONGO","UZBEQUISTÁN","COLOMBIA"],"L":["INGLATERRA","CROACIA","GHANA","PANAMÁ"]
-}
-
+BANDERAS = {"ESPAÑA":"🇪🇸","FRANCIA":"🇫🇷","INGLATERRA":"🏴󠁧󠁢󠁥󠁮󠁧󠁿","BRASIL":"🇧🇷","ARGENTINA":"🇦🇷","PORTUGAL":"🇵🇹","ALEMANIA":"🇩🇪","PAÍSES BAJOS":"🇳🇱","NORUEGA":"🇳🇴","BÉLGICA":"🇧🇪","COLOMBIA":"🇨🇴","JAPÓN":"🇯🇵","USA":"🇺🇸","MARRUECOS":"🇲🇦","URUGUAY":"🇺🇾","SUIZA":"🇨🇭","MÉXICO":"🇲🇽","CROACIA":"🇭🇷","TURQUÍA":"🇹🇷","ECUADOR":"🇪🇨","SENEGAL":"🇸🇳","SUECIA":"🇸🇪","CANADÁ":"🇨🇦","AUSTRIA":"🇦🇹","PARAGUAY":"🇵🇾","ESCOCIA":"🏴󠁧󠁢󠁳󠁣󠁴󠁿","BOSNIA HERZEG.":"🇧🇦","COSTA MARFIL":"🇨🇮","EGIPTO":"🇪🇬","CHEQUIA":"🇨🇿","GHANA":"🇬🇭","ARGELIA":"🇩🇿","COREA DEL SUR":"🇰🇷","TÚNEZ":"🇹🇳","AUSTRALIA":"🇦🇺","IRÁN":"🇮🇷","CONGO":"🇨🇬","SUDÁFRICA":"🇿🇦","CATAR":"🇶🇦","ARABIA SAUDÍ":"🇸🇦","PANAMÁ":"🇵🇦","NUEVA ZELANDA":"🇳🇿","IRAK":"🇮🇶","CABO VERDE":"🇨🇻","CURACAO":"🇨🇼","UZBEQUISTÁN":"🇺🇿","JORDANIA":"🇯🇴","HAITÍ":"🇭🇹"}
+VALOR_EQUIPOS = {"ESPAÑA":29,"FRANCIA":27,"INGLATERRA":26,"BRASIL":24,"ARGENTINA":24,"PORTUGAL":20,"ALEMANIA":20,"PAÍSES BAJOS":19,"NORUEGA":18,"BÉLGICA":17,"COLOMBIA":17,"JAPÓN":15,"USA":14,"MARRUECOS":14,"URUGUAY":14,"SUIZA":13,"MÉXICO":13,"CROACIA":13,"TURQUÍA":11,"ECUADOR":10,"SENEGAL":10,"SUECIA":9,"CANADÁ":9,"AUSTRIA":9,"PARAGUAY":8,"ESCOCIA":8,"BOSNIA HERZEG.":8,"COSTA MARFIL":7,"EGIPTO":7,"CHEQUIA":7,"GHANA":6,"ARGELIA":6,"COREA DEL SUR":5,"TÚNEZ":5,"AUSTRALIA":5,"IRÁN":4,"CONGO":3,"SUDÁFRICA":3,"CATAR":3,"ARABIA SAUDÍ":2,"PANAMÁ":2,"NUEVA ZELANDA":2,"IRAK":2,"CABO VERDE":2,"CURACAO":2,"UZBEQUISTÁN":2,"JORDANIA":1,"HAITÍ":0}
+GRUPOS = {"A":["MÉXICO","SUDÁFRICA","COREA DEL SUR","CHEQUIA"],"B":["CANADÁ","BOSNIA HERZEG.","CATAR","SUIZA"],"C":["BRASIL","MARRUECOS","HAITÍ","ESCOCIA"],"D":["USA","PARAGUAY","AUSTRALIA","TURQUÍA"],"E":["ALEMANIA","CURACAO","COSTA MARFIL","ECUADOR"],"F":["PAÍSES BAJOS","JAPÓN","SUECIA","TÚNEZ"],"G":["BÉLGICA","EGIPTO","IRÁN","NUEVA ZELANDA"],"H":["ESPAÑA","CABO VERDE","ARABIA SAUDÍ","URUGUAY"],"I":["FRANCIA","SENEGAL","IRAK","NORUEGA"],"J":["ARGENTINA","ARGELIA","AUSTRIA","JORDANIA"],"K":["PORTUGAL","CONGO","UZBEQUISTÁN","COLOMBIA"],"L":["INGLATERRA","CROACIA","GHANA","PANAMÁ"]}
 EMPAREJAMIENTOS_16VOS = {"M73":("2A","2B"),"M74":("1E","3_1"),"M75":("1F","2C"),"M76":("1C","2F"),"M77":("1I","3_2"),"M78":("2E","2I"),"M79":("1A","3_3"),"M80":("1L","3_4"),"M81":("1D","3_5"),"M82":("1G","3_6"),"M83":("2K","2L"),"M84":("1H","2J"),"M85":("1B","3_7"),"M86":("1J","2H"),"M87":("1K","3_8"),"M88":("2D","2G")}
 CRUCES_OCTAVOS = {"M89":("M74","M77"),"M90":("M73","M75"),"M91":("M76","M78"),"M92":("M79","M80"),"M93":("M83","M84"),"M94":("M81","M82"),"M95":("M85","M87"),"M96":("M86","M88")}
 CRUCES_CUARTOS = {"M97":("M89","M90"),"M98":("M93","M94"),"M99":("M91","M92"),"M100":("M95","M96")}
 CRUCES_SEMIS = {"M101":("M97","M98"),"M102":("M99","M100")}
 CRUCES_FINALES = {"M103 (3º y 4º)":("M101_L","M102_L"),"M104 (FINAL)":("M101","M102")}
 DIAS_INICIO = {"A":11,"B":12,"C":13,"D":13,"E":14,"F":14,"G":15,"H":15,"I":16,"J":16,"K":17,"L":17}
+
+def flag(eq): return BANDERAS.get(eq, "🏳️")
 
 def obtener_fecha_grupo(eA, eB, grupo):
     if eA=="ESPAÑA" and eB=="CABO VERDE": return "15 Jun - 18:00"
@@ -155,7 +134,7 @@ def borrar_goleador_real(jug):
 if "liga_actual" not in st.session_state: st.session_state.liga_actual = ""
 if "admin" not in st.session_state: st.session_state.admin = False
 if "menu_seleccionado" not in st.session_state: st.session_state.menu_seleccionado = "📊 Clasificación General"
-if "jugador_detalle" not in st.session_state: st.session_state.jugador_detalle = None
+if "jugador_viendo_detalle" not in st.session_state: st.session_state.jugador_viendo_detalle = None
 
 if not st.session_state.liga_actual:
     st.markdown("""
@@ -178,7 +157,7 @@ if not st.session_state.liga_actual:
                     if check.data and len(check.data) > 0: st.session_state.liga_actual = codigo; st.rerun()
                     else: st.error(f"❌ La liga '{codigo}' no existe. Comprueba el código.")
                 except: st.error("Hubo un problema. Inténtalo de nuevo.")
-        else: st.error("Escribe un código.")
+        else: st.error("Escribe un código para entrar.")
             
     st.markdown("</div></div><br><br><br>", unsafe_allow_html=True)
     
@@ -283,7 +262,7 @@ clasificacion_ordenada = sorted(lista_clasif, key=lambda x: x["Puntos"], reverse
 
 
 # ══════════════════════════════════════════
-# MENÚ SUPERIOR (CON TELETRANSPORTE)
+# MENÚ SUPERIOR Y NAVEGACIÓN
 # ══════════════════════════════════════════
 col_title, col_btn = st.columns([3, 1])
 with col_title: st.markdown(f"<h3 style='color:#FFD700; margin:0; padding-top:5px;'>🏆 Liga: {liga_actual}</h3>", unsafe_allow_html=True)
@@ -291,21 +270,24 @@ with col_btn:
     if st.button("🚪 Salir", use_container_width=True): 
         st.session_state.liga_actual = ""
         st.session_state.menu_seleccionado = "📊 Clasificación General"
+        st.session_state.jugador_viendo_detalle = None
         st.rerun()
 
 st.write("")
-opciones_menu = ["📊 Clasificación General", "👤 Detalle por Jugador", "🔥 Tabla de Goleadores", "🏆 Tabla de Grupos", "📅 Resultados Partidos", "⚽ Cuadro Eliminatorias"]
+
+# Ojo aquí: Ya no existe la opción "Detalle por Jugador" en el menú público
+opciones_menu = ["📊 Clasificación General", "🔥 Tabla de Goleadores", "🏆 Tabla de Grupos", "📅 Resultados Partidos", "⚽ Cuadro Eliminatorias"]
 if st.session_state.admin: opciones_menu += ["--- ZONA ADMIN ---", "👥 Participantes", "🔧 Resultados Grupos", "⚔️ Resultados Elim.", "🥇 Pichichi Equipo", "🎯 Pichichis Jugadores", "➕ Ajuste Puntos"]
 
-# Recuperamos el menú donde nos habíamos quedado
 try: idx_menu = opciones_menu.index(st.session_state.menu_seleccionado)
 except ValueError: idx_menu = 0
 
 menu = st.selectbox("👉 Elige qué quieres ver:", opciones_menu, index=idx_menu)
 
-# Si el usuario cambia el menú manualmente, actualizamos el estado
+# Si cambias de menú, matamos la vista de detalles por si acaso
 if menu != st.session_state.menu_seleccionado:
     st.session_state.menu_seleccionado = menu
+    st.session_state.jugador_viendo_detalle = None
     st.rerun()
 
 if menu == "--- ZONA ADMIN ---": st.info("👆 Selecciona una herramienta de admin arriba."); st.stop()
@@ -315,45 +297,37 @@ if menu == "--- ZONA ADMIN ---": st.info("👆 Selecciona una herramienta de adm
 # VISTAS PÚBLICAS
 # ══════════════════════════════════════════
 if menu == "📊 Clasificación General":
-    st.image("https://upload.wikimedia.org/wikipedia/commons/b/b4/Lionel-Messi-Argentina-2022.jpg", use_container_width=True)
-    st.markdown('<div class="titulo-principal">📊 Clasificación General</div>', unsafe_allow_html=True)
-    if not participantes: st.warning("Aún no hay participantes en esta liga.")
-    else:
-        for i, row in enumerate(clasificacion_ordenada):
-            med = ["🥇","🥈","🥉"][i] if i < 3 else f"#{i+1}"
-            eq_str = " ".join([f"{flag(e)}" for e in row["Equipos"]])
-            ext_bdg = f'<span style="font-size:0.5em; background:rgba(255,255,255,0.2); padding:2px 5px; border-radius:4px; margin-left:10px;">Ajuste: {row["Extra"]} pts</span>' if row["Extra"]!=0 else ""
-            
-            # Tarjeta de jugador
-            st.markdown(f"""
-            <div class="card">
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <div><span style="font-size:1.5em">{med}</span><span style="font-size:1.3em; font-weight:700; margin-left:10px; color:white;">{row["Jugador"]}</span>{ext_bdg}<br><small style="color:#aaa;">{eq_str}</small></div>
-                    <div style="font-size:2em; font-weight:900; color:#FFD700">{row["Puntos"]}<span style="font-size:0.4em; color:#aaa;"> pts</span></div>
-                </div>
-            </div>""", unsafe_allow_html=True)
-            
-            # Botón de teletransporte debajo de la tarjeta
-            if st.button(f"🔍 Ver detalle de {row['Jugador']}", key=f"ver_{row['Jugador']}", use_container_width=True):
-                st.session_state.menu_seleccionado = "👤 Detalle por Jugador"
-                st.session_state.jugador_detalle = row["Jugador"]
-                st.rerun()
+    
+    # 1. PANTALLA DE CLASIFICACIÓN (SI NO ESTAMOS VIENDO A NADIE)
+    if st.session_state.jugador_viendo_detalle is None:
+        st.image("https://upload.wikimedia.org/wikipedia/commons/b/b4/Lionel-Messi-Argentina-2022.jpg", use_container_width=True)
+        st.markdown('<div class="titulo-principal">📊 Clasificación General</div>', unsafe_allow_html=True)
+        
+        if not participantes: st.warning("Aún no hay participantes en esta liga.")
+        else:
+            for i, row in enumerate(clasificacion_ordenada):
+                med = ["🥇","🥈","🥉"][i] if i < 3 else f"#{i+1}"
+                
+                # Diseño de fila muy compacto
+                c1, c2 = st.columns([4, 2])
+                with c1:
+                    st.markdown(f"<div style='margin-top:10px; font-size:1.1em;'><b>{med} <span style='color:white;'>{row['Jugador']}</span></b> · <span style='color:#FFD700; font-weight:bold;'>{row['Puntos']} pts</span></div>", unsafe_allow_html=True)
+                with c2:
+                    if st.button("🔍 Ver", key=f"btn_{row['Jugador']}", use_container_width=True):
+                        st.session_state.jugador_viendo_detalle = row['Jugador']
+                        st.rerun()
+            st.caption("🔍 Toca en 'Ver' para ojear los puntos y partidos de cualquier amigo.")
 
-elif menu == "👤 Detalle por Jugador":
-    st.markdown('<div class="titulo-principal">👤 Detalle por Jugador</div>', unsafe_allow_html=True)
-    if not participantes: st.warning("Aún no hay participantes.")
+    # 2. PANTALLA DE DETALLE (SI HEMOS PULSADO EN ALGUIEN)
     else:
-        nombres = [r["Jugador"] for r in clasificacion_ordenada]
-        
-        # Teletransporte: seleccionamos por defecto al amigo elegido en la pestaña anterior
-        idx_jug = nombres.index(st.session_state.jugador_detalle) if st.session_state.jugador_detalle in nombres else 0
-        jug_sel = st.selectbox("Selecciona un amigo:", nombres, index=idx_jug)
-        
-        # Si cambia el selector, actualizamos para la próxima
-        if jug_sel != st.session_state.jugador_detalle:
-            st.session_state.jugador_detalle = jug_sel
-            
+        jug_sel = st.session_state.jugador_viendo_detalle
         row = next(item for item in clasificacion_ordenada if item["Jugador"] == jug_sel)
+        
+        if st.button("⬅️ Volver a la Clasificación", use_container_width=True):
+            st.session_state.jugador_viendo_detalle = None
+            st.rerun()
+            
+        st.markdown(f"<div class='titulo-principal'>{jug_sel}</div>", unsafe_allow_html=True)
         
         st.markdown(f"<h3 style='color: white;'>🛡️ Selecciones ({row['Puntos']} pts)</h3>", unsafe_allow_html=True)
         for eq in row["Equipos"]:
@@ -397,6 +371,7 @@ elif menu == "👤 Detalle por Jugador":
         if html_partidos == "": st.caption("No hay partidos de estas selecciones.")
         else: st.markdown(html_partidos, unsafe_allow_html=True)
 
+
 elif menu == "🔥 Tabla de Goleadores":
     st.markdown('<div class="titulo-principal">🔥 Top Pichichis</div>', unsafe_allow_html=True)
     if not goleadores_reales: st.info("Aún no se han registrado goles en el torneo.")
@@ -405,6 +380,7 @@ elif menu == "🔥 Tabla de Goleadores":
             med = ["🥇","🥈","🥉"][i] if i < 3 else f"#{i+1}"
             pen = f"<br><span style='font-size:0.5em; color:#FF8C00; font-weight:normal;'>({j.get('goles_penalti', 0)} de penalti)</span>" if j.get('goles_penalti', 0) > 0 else ""
             st.markdown(f"""<div class="card" style="display:flex; justify-content:space-between; align-items:center; padding:15px; border-left: 5px solid #FFD700;"><div style="font-size:1.4em; color:#ffffff; font-weight:bold;">{med} {j['jugador']} <span style="color:#cccccc; font-size:0.7em; margin-left:10px; font-weight:normal;">{flag(j['equipo'])} {j['equipo']}</span></div><div style="font-size:1.6em; font-weight:900; color:#FFD700; text-align:right; line-height:1.1;">{j['goles']} ⚽{pen}</div></div>""", unsafe_allow_html=True)
+
 
 elif menu == "🏆 Tabla de Grupos":
     st.markdown('<div class="titulo-principal">🏆 Tabla de Grupos</div>', unsafe_allow_html=True)
@@ -416,6 +392,7 @@ elif menu == "🏆 Tabla de Grupos":
             st.markdown(f"<h4 style='color: #FFD700; margin-bottom: 10px;'>Grupo {grupo}</h4>", unsafe_allow_html=True)
             def hl(row): return ['background-color:#1a472a;color:white']*len(row) if row.name<=2 else (['background-color:#2d4a1e;color:#90EE90']*len(row) if row.name==3 and row['Equipo'] in mejores_3 else ['color:#bbb']*len(row))
             st.dataframe(df_g[['','Equipo','PJ','Pts','GF','GC','Dif']].style.apply(hl,axis=1), use_container_width=True, hide_index=False)
+
 
 elif menu == "📅 Resultados Partidos":
     st.markdown('<div class="titulo-principal">📅 Partidos</div>', unsafe_allow_html=True)
@@ -437,6 +414,7 @@ elif menu == "📅 Resultados Partidos":
         for i, (m_id, r) in enumerate(resultados_elim.items()):
             with [ce1, ce2][i % 2]:
                 st.markdown(f"""<div class="card" style="padding:15px; margin-bottom:10px;"><div style="display:flex; justify-content:space-between; font-size:0.8em; color:#aaa; margin-bottom:5px;"><span>{m_id} · {r['resolucion']}</span><span>🕒 {FECHAS_ELIM.get(m_id,"")}</span></div><div style="display:flex; justify-content:space-between; align-items:center;"><span style="font-weight:{'bold' if r['ganador']==r['equipo_A'] else 'normal'}; color:{'#FFD700' if r['ganador']==r['equipo_A'] else 'white'};">{flag(r['equipo_A'])} {r['equipo_A']}</span><span style="background:#FFD700; color:#000; padding:4px 10px; border-radius:6px; font-weight:bold;">{r['goles_A']} - {r['goles_B']}</span><span style="font-weight:{'bold' if r['ganador']==r['equipo_B'] else 'normal'}; color:{'#FFD700' if r['ganador']==r['equipo_B'] else 'white'};">{r['equipo_B']} {flag(r['equipo_B'])}</span></div></div>""", unsafe_allow_html=True)
+
 
 elif menu == "⚽ Cuadro Eliminatorias":
     st.markdown('<div class="titulo-principal">⚽ Cuadro de Eliminatorias</div>', unsafe_allow_html=True)
