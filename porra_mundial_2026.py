@@ -429,11 +429,17 @@ elif menu == "🔥 Tabla de Goleadores":
             med = "🥇" if i == 0 else "🥈" if i == 1 else "🥉" if i == 2 else f"#{i+1}"
             st.markdown(f"""
             <div class="card" style="display:flex; justify-content:space-between; align-items:center; padding:15px;">
-                <div style="font-size:1.2em;"><b>{med} {j['jugador']}</b> <span style="color:#888; font-size:0.8em; margin-left:10px;">{flag(j['equipo'])} {j['equipo']}</span></div>
-                <div style="font-size:1.5em; font-weight:bold; color:#FFD700;">{j['goles']} ⚽</div>
+                <div style="font-size:1.2em; color:white;">
+                    <b>{med} {j['jugador']}</b> 
+                    <span style="color:#aaa; font-size:0.85em; margin-left:12px; font-weight:normal;">
+                        {flag(j['equipo'])} {j['equipo']}
+                    </span>
+                </div>
+                <div style="font-size:1.5em; font-weight:bold; color:#FFD700; min-width:80px; text-align:right;">
+                    {j['goles']} ⚽
+                </div>
             </div>
             """, unsafe_allow_html=True)
-
 # ══════════════════════════════════════════
 # TABLA DE GRUPOS
 # ══════════════════════════════════════════
