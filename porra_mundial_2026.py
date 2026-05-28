@@ -304,12 +304,13 @@ with st.sidebar:
 # CLASIFICACIÓN GENERAL
 # ══════════════════════════════════════════
 if menu == "📊 Clasificación General":
-    st.image("https://fotografias.antena3.com/clipping/cmsimages02/2022/12/19/57017F2A-8327-404D-8997-5C37A44CDC03/messi-replica-iconica-imagen-maradona-copa-mundo_97.jpg?crop=4096,2304,x0,y0&width=1600&height=900&optimize=low&format=webply.jpg", use_container_width=True)
+    st.image("https://upload.wikimedia.org/wikipedia/commons/b/b4/Lionel-Messi-Argentina-2022.jpg", use_container_width=True)
     st.markdown('<div class="titulo-principal">📊 Clasificación General</div>', unsafe_allow_html=True)
     st.write("")
     if not participantes:
         st.warning("Aún no hay participantes registrados.")
     else:
+        # Calculamos los puntos que tiene cada equipo en este momento
         pts = calcular_puntos(df_tabla)
         
         lista_clasif = []
@@ -328,8 +329,18 @@ if menu == "📊 Clasificación General":
             
             extra_badge = f'<span style="font-size:0.5em; background:rgba(255,255,255,0.2); padding:2px 5px; border-radius:4px; margin-left:10px;">Ajuste: {row["Extra"]} pts</span>' if row["Extra"] != 0 else ""
 
-            st.markdown(f'<div class="card"><div style="display:flex; justify-content:space-between; align-items:center;"><div><span style="font-size:1.5em">{med}</span><span style="font-size:1.3em; font-weight:700; margin-left:10px; color:white;">{row["Jugador"]}</span>{extra_badge}<br><small style="color:#888">{equipos_str} {nombres_str}</small></div><div style="font-size:2em; font-weight:900; color:#FFD700">{row["Puntos"]}<span style="font-size:0.4em; color:#888"> pts</span></div></div></div>', unsafe_allow_html=True)
-
+            # Tarjeta principal del jugador (le quitamos el margen inferior para que pegue con el desplegable)
+            st.markdown(f'<div class="card" style="margin-bottom: 0px;"><div style="display:flex; justify-content:space-between; align-items:center;"><div><span style="font-size:1.5em">{med}</span><span style="font-size:1.3em; font-weight:700; margin-left:10px; color:white;">{row["Jugador"]}</span>{extra_badge}<br><small style="color:#888">{equipos_str} {nombres_str}</small></div><div style="font-size:2em; font-weight:900; color:#FFD700">{row["Puntos"]}<span style="font-size:0.4em; color:#888"> pts</span></div></div></div>', unsafe_allow_html=True)
+            
+            # NUEVO: Desplegable con el desglose de puntos
+            with st.expander(f"🔍 Ver detalle de puntos de {row['Jugador']}"):
+                for eq in row["Equipos"]:
+                    st.write(f"{flag(eq)} **{eq}**: `{pts[eq]} pts`")
+                
+                if row["Extra"] != 0:
+                    st.write(f"➕ **Ajuste manual**: `{row['Extra']} pts`")
+                if pichichi and pichichi in row["Equipos"]:
+                    st.caption(f"*(Incluye +2 pts por tener a {pichichi} como Pichichi)*")
 # ══════════════════════════════════════════
 # TABLA DE GRUPOS
 # ══════════════════════════════════════════
