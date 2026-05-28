@@ -617,36 +617,49 @@ elif menu == "🥇 Goles Equipo (+2pts)":
 
 elif menu == "🎯 Añadir Goles a Jugadores":
     st.markdown('<div class="titulo-principal">🎯 Añadir Goles (Pichichis)</div>', unsafe_allow_html=True)
-    st.info("Escribe los goles que ha metido HOY el jugador. El sistema los SUMARÁ automáticamente a los que ya tenía guardados.")
+    st.info("Si el jugador ya existe, selecciónalo en la lista. Si no, dale a 'CREAR NUEVO'.")
     
-    with st.form("form_pichichi"):
-        c1, c2, c3, c4 = st.columns([2,2,1,1])
+    jugadores_creados = sorted([j['jugador'] for j in goleadores_reales])
+    opciones_jugador = ["✨ CREAR NUEVO JUGADOR ✨"] + jugadores_creados
+    
+    jugador_sel = st.selectbox("1. Selecciona el jugador", opciones_jugador)
+    
+    c1, c2, c3, c4 = st.columns([2, 2, 1, 1])
+    
+    if jugador_sel == "✨ CREAR NUEVO JUGADOR ✨":
         equipo = c1.selectbox("Selección", list(VALOR_EQUIPOS.keys()))
         jugador = c2.text_input("Nombre (Ej: Morata)")
-        goles_nuevos = c3.number_input("Goles a sumar", min_value=1, value=1)
-        penaltis_nuevos = c4.number_input("De penalti (a sumar)", min_value=0, value=0)
+    else:
+        jugador = jugador_sel
+        equipo_existente = next((j['equipo'] for j in goleadores_reales if j['jugador'] == jugador), list(VALOR_EQUIPOS.keys())[0])
+        idx_equipo = list(VALOR_EQUIPOS.keys()).index(equipo_existente) if equipo_existente in VALOR_EQUIPOS else 0
+        equipo = c1.selectbox("Selección", list(VALOR_EQUIPOS.keys()), index=idx_equipo, disabled=True)
+        c2.text_input("Nombre", value=jugador, disabled=True)
         
-        if st.form_submit_button("➕ Sumar Goles", use_container_width=True):
-            if jugador:
-                jugador_formateado = jugador.title()
-                existente = next((j for j in goleadores_reales if j['jugador'].lower() == jugador.lower()), None)
-                
-                if existente:
-                    total_goles = existente['goles'] + goles_nuevos
-                    total_pen = existente.get('goles_penalti', 0) + penaltis_nuevos
-                else:
-                    total_goles = goles_nuevos
-                    total_pen = penaltis_nuevos
-
-                if total_pen > total_goles:
-                    st.error("Los goles de penalti totales no pueden ser mayores que los totales.")
-                else:
-                    guardar_goleador_real(jugador_formateado, equipo, total_goles, total_pen)
-                    st.success(f"✅ ¡Sumados! {jugador_formateado} ({equipo}) tiene ahora {total_goles} goles en total.")
-                    st.rerun()
+    goles_nuevos = c3.number_input("Goles a sumar", min_value=1, value=1)
+    penaltis_nuevos = c4.number_input("De penalti (sumar)", min_value=0, value=0)
+    
+    if st.button("➕ Sumar Goles", use_container_width=True):
+        if jugador:
+            jugador_formateado = jugador.title()
+            existente = next((j for j in goleadores_reales if j['jugador'].lower() == jugador.lower()), None)
+            
+            if existente:
+                total_goles = existente['goles'] + goles_nuevos
+                total_pen = existente.get('goles_penalti', 0) + penaltis_nuevos
             else:
-                st.error("Escribe un nombre.")
-                
+                total_goles = goles_nuevos
+                total_pen = penaltis_nuevos
+
+            if total_pen > total_goles:
+                st.error("Los goles de penalti totales no pueden ser mayores que los totales.")
+            else:
+                guardar_goleador_real(jugador_formateado, equipo, total_goles, total_pen)
+                st.success(f"✅ ¡Sumados! {jugador_formateado} ({equipo}) tiene ahora {total_goles} goles en total.")
+                st.rerun()
+        else:
+            st.error("Escribe un nombre.")
+            
     if goleadores_reales:
         st.divider()
         st.markdown("### Jugadores registrados (Total Acumulado)")
