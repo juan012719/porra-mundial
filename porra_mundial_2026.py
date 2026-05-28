@@ -13,31 +13,37 @@ st.markdown("""
     [data-testid="stSidebar"] { display: none !important; }
     footer { display: none !important; }
     
-    /* Forzar el color base de la app para evitar que el Modo Claro del móvil ponga letras negras */
+    /* Forzar el color base de la app */
     .stApp, .stMarkdown, p, label { color: #f0f2f6 !important; }
     
     .main { background-color: #0e1117; }
     .stApp { background: linear-gradient(135deg, #0e1117 0%, #1a1f2e 100%); }
     
     /* =========================================
-       BOTONES: FORZAR LETRA OSCURA Y VISIBLE
+       BOTONES: APISONADORA PARA LETRA NEGRA
        ========================================= */
-    div.stButton > button, 
-    div.stButton > button p, 
-    div[data-testid="stPopover"] > button, 
-    div[data-testid="stPopover"] > button p {
-        color: #111111 !important;
-        font-weight: 900 !important;
-    }
-    div.stButton > button, div[data-testid="stPopover"] > button {
+    button {
         background-color: #f0f2f6 !important;
         border: 2px solid #ccc !important;
         border-radius: 8px !important;
     }
-    div.stButton > button:hover, div[data-testid="stPopover"] > button:hover {
+    /* El asterisco obliga a que CUALQUIER texto dentro del botón sea negro */
+    button * {
+        color: #111111 !important;
+        font-weight: 900 !important;
+    }
+    button:hover {
         background-color: #FFD700 !important;
         border-color: #FFD700 !important;
+    }
+    button:hover * {
         color: #000000 !important;
+    }
+    
+    /* Fondo oscuro para las ventanas desplegables (popovers) */
+    div[data-testid="stPopoverBody"] {
+        background-color: #1e2530 !important;
+        border: 1px solid #4a5568 !important;
     }
     
     .titulo-principal {
@@ -52,7 +58,6 @@ st.markdown("""
     }
     .titulo-landing {
         text-align: center;
-        /* Hacemos el texto elástico: más pequeño en móvil y grande en PC */
         font-size: clamp(2.5em, 8vw, 4.5em);
         font-weight: 900;
         background: linear-gradient(90deg, #FFD700, #FF6B35, #FFD700);
@@ -65,7 +70,7 @@ st.markdown("""
         text-align: center;
         color: #aaa !important;
         font-size: clamp(0.9em, 3vw, 1.2em);
-        margin-bottom: 30px;
+        margin-bottom: 20px;
         letter-spacing: 5px;
     }
     .card {
@@ -91,13 +96,20 @@ st.markdown("""
         font-weight: bold;
         font-size: 0.9em;
     }
+    
+    /* Centrado absoluto para la pantalla de inicio */
+    .centrado-absoluto {
+        max-width: 500px;
+        margin: 15vh auto 0 auto;
+        padding: 15px;
+    }
 </style>
 """, unsafe_allow_html=True)
 
 ADMIN_PASSWORD = st.secrets["ADMIN_PASSWORD"]
 
 BANDERAS = {
-    "ESPAÑA": "💩", "FRANCIA": "🇫🇷", "INGLATERRA": "🏴󠁧󠁢󠁥󠁮󠁧󠁿", "BRASIL": "🇧🇷", "ARGENTINA": "🇦🇷",
+    "ESPAÑA": "🇪🇸", "FRANCIA": "🇫🇷", "INGLATERRA": "🏴󠁧󠁢󠁥󠁮󠁧󠁿", "BRASIL": "🇧🇷", "ARGENTINA": "🇦🇷",
     "PORTUGAL": "🇵🇹", "ALEMANIA": "🇩🇪", "PAÍSES BAJOS": "🇳🇱", "NORUEGA": "🇳🇴", "BÉLGICA": "🇧🇪",
     "COLOMBIA": "🇨🇴", "JAPÓN": "🇯🇵", "USA": "🇺🇸", "MARRUECOS": "🇲🇦", "URUGUAY": "🇺🇾",
     "SUIZA": "🇨🇭", "MÉXICO": "🇲🇽", "CROACIA": "🇭🇷", "TURQUÍA": "🇹🇷", "ECUADOR": "🇪🇨",
@@ -297,28 +309,13 @@ if "admin" not in st.session_state:
 # PANTALLA PRINCIPAL (LANDING PAGE)
 # ══════════════════════════════════════════
 if not st.session_state.liga_actual:
-    # Esto centra el contenido absoluto en medio de la pantalla
     st.markdown("""
-        <style>
-        .block-container {
-            display: flex !important;
-            flex-direction: column !important;
-            justify-content: center !important;
-            min-height: 85vh !important;
-            max-width: 600px !important;
-            padding-top: 0 !important;
-        }
-        </style>
-    """, unsafe_allow_html=True)
-    
-    st.markdown('<div class="titulo-landing">⚽ Porra Mundial 2026</div>', unsafe_allow_html=True)
-    st.markdown('<div class="subtitulo">USA · CANADA · MEXICO</div>', unsafe_allow_html=True)
-    
-    st.markdown("""
-    <div style="text-align: center; margin-bottom: 20px;">
-        <h2 style="color:white; margin-top:0;">🏆 Accede a tu Porra</h2>
-        <p style="color: #aaa; margin-bottom: 5px;">Introduce la palabra secreta de tu grupo para entrar a tu liga privada.</p>
-    </div>
+    <div class="centrado-absoluto">
+        <div class="titulo-landing">⚽ Porra Mundial 2026</div>
+        <div class="subtitulo">USA · CANADA · MEXICO</div>
+        <div class="card" style="text-align: center; padding: 40px; margin-top: 30px;">
+            <h2 style="color:white; margin-top:0;">🏆 Accede a tu Porra</h2>
+            <p style="color: #aaa; margin-bottom: 20px;">Introduce la palabra secreta de tu grupo para entrar a tu liga privada.</p>
     """, unsafe_allow_html=True)
     
     codigo = st.text_input("Código", placeholder="Ejemplo: CUADRILLA, OFICINA...", label_visibility="collapsed").strip().upper()
@@ -343,7 +340,8 @@ if not st.session_state.liga_actual:
         else:
             st.error("Por favor, escribe un código para entrar.")
             
-    st.write("")
+    st.markdown("</div></div>", unsafe_allow_html=True)
+    
     st.write("")
     st.write("")
     
