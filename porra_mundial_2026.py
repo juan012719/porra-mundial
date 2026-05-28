@@ -141,10 +141,9 @@ if "admin" not in st.session_state: st.session_state.admin = False
 if "menu_seleccionado" not in st.session_state: st.session_state.menu_seleccionado = "📊 Clasificación General"
 
 if not st.session_state.liga_actual:
-    # NUEVO: Pantalla de inicio centrada con imagen integrada
     st.markdown('<div class="login-wrapper">', unsafe_allow_html=True)
     
-    st.image("https://upload.wikimedia.org/wikipedia/commons/b/b4/Lionel-Messi-Argentina-2022.jpg", use_container_width=True)
+    st.image("https://fotografias.antena3.com/clipping/cmsimages02/2022/12/19/57017F2A-8327-404D-8997-5C37A44CDC03/messi-replica-iconica-imagen-maradona-copa-mundo_97.jpg?crop=4096,2304,x0,y0&width=1600&height=900&optimize=low&format=webply", use_container_width=True)
     st.markdown('<div class="titulo-landing">⚽ Porra Mundial 2026</div>', unsafe_allow_html=True)
     st.markdown('<div class="subtitulo">USA · CANADA · MEXICO</div>', unsafe_allow_html=True)
     
@@ -161,7 +160,6 @@ if not st.session_state.liga_actual:
                 st.session_state.liga_actual = codigo
                 st.rerun()
             else:
-                # SOLUCIÓN BUG LOGIN: Ya no usamos un try-except genérico que captura el st.rerun()
                 existe = False
                 try:
                     check = get_supabase().table("participantes").select("nombre").eq("liga", codigo).limit(1).execute()
@@ -535,3 +533,4 @@ elif menu == "➕ Ajuste Puntos":
     if p_sel:
         nv = st.number_input("Puntos extra:", value=ajustes_manuales.get(p_sel, 0))
         if st.button("💾 Aplicar"): guardar_ajuste_puntos(liga_actual, p_sel, nv); st.rerun()
+    
