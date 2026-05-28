@@ -417,7 +417,7 @@ if menu == "📊 Clasificación General":
                 else: st.markdown(html_partidos, unsafe_allow_html=True)
 
 # ══════════════════════════════════════════
-# TOP GOLEADORES (NUEVO)
+# TOP GOLEADORES (PUBLICO)
 # ══════════════════════════════════════════
 elif menu == "🔥 Tabla de Goleadores":
     st.markdown('<div class="titulo-principal">🔥 Top Pichichis</div>', unsafe_allow_html=True)
@@ -428,17 +428,17 @@ elif menu == "🔥 Tabla de Goleadores":
         for i, j in enumerate(goleadores_reales):
             med = "🥇" if i == 0 else "🥈" if i == 1 else "🥉" if i == 2 else f"#{i+1}"
             penaltis = j.get('goles_penalti', 0)
-            texto_penalti = f"<br><span style='font-size:0.55em; color:#aaa; font-weight:normal;'>({penaltis} de penalti)</span>" if penaltis > 0 else ""
+            texto_penalti = f"<br><span style='font-size:0.5em; color:#FF8C00; font-weight:normal;'>({penaltis} de penalti)</span>" if penaltis > 0 else ""
             
             st.markdown(f"""
-            <div class="card" style="display:flex; justify-content:space-between; align-items:center; padding:15px;">
-                <div style="font-size:1.2em; color:white;">
-                    <b>{med} {j['jugador']}</b> 
-                    <span style="color:#aaa; font-size:0.85em; margin-left:12px; font-weight:normal;">
+            <div class="card" style="display:flex; justify-content:space-between; align-items:center; padding:15px; border-left: 5px solid #FFD700;">
+                <div style="font-size:1.4em; color:#ffffff; font-weight:bold;">
+                    {med} {j['jugador']} 
+                    <span style="color:#cccccc; font-size:0.7em; margin-left:10px; font-weight:normal;">
                         {flag(j['equipo'])} {j['equipo']}
                     </span>
                 </div>
-                <div style="font-size:1.5em; font-weight:bold; color:#FFD700; min-width:80px; text-align:right;">
+                <div style="font-size:1.6em; font-weight:900; color:#FFD700; min-width:80px; text-align:right; line-height:1.1;">
                     {j['goles']} ⚽{texto_penalti}
                 </div>
             </div>
@@ -616,35 +616,45 @@ elif menu == "🥇 Goles Equipo (+2pts)":
     if st.button("💾 Guardar",use_container_width=True): guardar_pichichi(sel if sel!="Ninguno aún..." else None); st.success("Guardado")
 
 elif menu == "🎯 Añadir Goles a Jugadores":
-    st.markdown('<div class="titulo-principal">🎯 Goleadores (Pichichis)</div>', unsafe_allow_html=True)
-    st.info("Escribe el nombre del jugador que ha metido gol y su selección. Se actualizará en tiempo real en la tabla pública.")
+    st.markdown('<div class="titulo-principal">🎯 Añadir Goles (Pichichis)</div>', unsafe_allow_html=True)
+    st.info("Escribe los goles que ha metido HOY el jugador. El sistema los SUMARÁ automáticamente a los que ya tenía guardados.")
     
     with st.form("form_pichichi"):
         c1, c2, c3, c4 = st.columns([2,2,1,1])
         equipo = c1.selectbox("Selección", list(VALOR_EQUIPOS.keys()))
         jugador = c2.text_input("Nombre (Ej: Morata)")
-        goles = c3.number_input("Total goles", min_value=1, value=1)
-        goles_penalti = c4.number_input("De penalti", min_value=0, value=0)
+        goles_nuevos = c3.number_input("Goles a sumar", min_value=1, value=1)
+        penaltis_nuevos = c4.number_input("De penalti (a sumar)", min_value=0, value=0)
         
-        if st.form_submit_button("⚽ Añadir / Actualizar", use_container_width=True):
+        if st.form_submit_button("➕ Sumar Goles", use_container_width=True):
             if jugador:
-                if goles_penalti > goles:
-                    st.error("Los goles de penalti no pueden ser mayores que los totales.")
+                jugador_formateado = jugador.title()
+                existente = next((j for j in goleadores_reales if j['jugador'].lower() == jugador.lower()), None)
+                
+                if existente:
+                    total_goles = existente['goles'] + goles_nuevos
+                    total_pen = existente.get('goles_penalti', 0) + penaltis_nuevos
                 else:
-                    guardar_goleador_real(jugador, equipo, goles, goles_penalti)
-                    st.success(f"Guardado: {jugador} ({equipo}) - {goles} goles ({goles_penalti} penalti)")
+                    total_goles = goles_nuevos
+                    total_pen = penaltis_nuevos
+
+                if total_pen > total_goles:
+                    st.error("Los goles de penalti totales no pueden ser mayores que los totales.")
+                else:
+                    guardar_goleador_real(jugador_formateado, equipo, total_goles, total_pen)
+                    st.success(f"✅ ¡Sumados! {jugador_formateado} ({equipo}) tiene ahora {total_goles} goles en total.")
                     st.rerun()
             else:
                 st.error("Escribe un nombre.")
                 
     if goleadores_reales:
         st.divider()
-        st.markdown("### Jugadores registrados")
+        st.markdown("### Jugadores registrados (Total Acumulado)")
         for j in goleadores_reales:
             col1, col2 = st.columns([5,1])
-            pen_text = f" (de penalti: {j.get('goles_penalti', 0)})" if j.get('goles_penalti', 0) > 0 else ""
-            col1.markdown(f"{flag(j['equipo'])} **{j['jugador']}** - `{j['goles']} goles` <span style='color:#aaa; font-size:0.8em;'>{pen_text}</span>", unsafe_allow_html=True)
-            if col2.button("🗑️", key=f"del_gol_{j['jugador']}"):
+            pen_text = f" <span style='color:#FF8C00; font-size:0.85em;'>({j.get('goles_penalti', 0)} de penalti)</span>" if j.get('goles_penalti', 0) > 0 else ""
+            col1.markdown(f"<div style='background:#1e2530; padding:10px; border-radius:8px; border:1px solid #4a5568;'><span style='color:white; font-weight:bold; font-size:1.1em;'>{flag(j['equipo'])} {j['jugador']}</span> <span style='color:#FFD700; font-weight:bold; margin-left:10px;'>{j['goles']} goles</span>{pen_text}</div>", unsafe_allow_html=True)
+            if col2.button("🗑️ Borrar", key=f"del_gol_{j['jugador']}"):
                 borrar_goleador_real(j['jugador'])
                 st.rerun()
 
