@@ -138,12 +138,40 @@ FECHAS_ELIM = {
 def get_supabase():
     return create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
 
+# --- FUNCIONES DE BASE DE DATOS (NUEVAS MULTI-LIGA) ---
 @st.cache_data(ttl=30)
-def cargar_participantes():
+def cargar_participantes(liga):
+    if not liga: return {}
     sb = get_supabase()
-    rows = sb.table("participantes").select("*").execute().data
+    rows = sb.table("participantes").select("*").eq("liga", liga).execute().data
     return {r["nombre"]: r["equipos"].split(",") if r["equipos"] else [] for r in rows}
 
+@st.cache_data(ttl=30)
+def cargar_ajustes_puntos(liga):
+    if not liga: return {}
+    try:
+        sb = get_supabase()
+        rows = sb.table("ajustes_puntos").select("*").eq("liga", liga).execute().data
+        return {r["nombre"]: r["puntos_extra"] for r in rows}
+    except Exception: return {}
+
+def guardar_participantes(liga, participantes_dict):
+    if not liga: return
+    sb = get_supabase()
+    sb.table("participantes").delete().eq("liga", liga).execute()
+    rows = [{"liga": liga, "nombre": n, "equipos": ",".join(e)} for n, e in participantes_dict.items()]
+    if rows: sb.table("participantes").insert(rows).execute()
+    cargar_participantes.clear()
+
+def guardar_ajuste_puntos(liga, nombre, puntos_extra):
+    if not liga: return
+    try:
+        sb = get_supabase()
+        sb.table("ajustes_puntos").upsert({"liga": liga, "nombre": nombre, "puntos_extra": puntos_extra}).execute()
+        cargar_ajustes_puntos.clear()
+    except Exception: pass
+
+# --- FUNCIONES GLOBALES (MUNDIAL) ---
 @st.cache_data(ttl=30)
 def cargar_resultados_grupos():
     sb = get_supabase()
@@ -163,26 +191,11 @@ def cargar_pichichi():
     return rows[0]["equipo"] if rows else None
 
 @st.cache_data(ttl=30)
-def cargar_ajustes_puntos():
-    try:
-        sb = get_supabase()
-        rows = sb.table("ajustes_puntos").select("*").execute().data
-        return {r["nombre"]: r["puntos_extra"] for r in rows}
-    except Exception: return {}
-
-@st.cache_data(ttl=30)
 def cargar_pichichis_reales():
     try:
         sb = get_supabase()
         return sb.table("pichichis_reales").select("*").order("goles", desc=True).execute().data
     except Exception: return []
-
-def guardar_participantes(participantes):
-    sb = get_supabase()
-    sb.table("participantes").delete().neq("nombre","").execute()
-    rows = [{"nombre":n,"equipos":",".join(e)} for n,e in participantes.items()]
-    if rows: sb.table("participantes").insert(rows).execute()
-    cargar_participantes.clear()
 
 def guardar_resultado_grupo(key, eA, eB, gA, gB):
     sb = get_supabase()
@@ -210,13 +223,6 @@ def guardar_pichichi(eq):
     if eq: sb.table("pichichi").insert({"equipo":eq}).execute()
     cargar_pichichi.clear()
 
-def guardar_ajuste_puntos(nombre, puntos_extra):
-    try:
-        sb = get_supabase()
-        sb.table("ajustes_puntos").upsert({"nombre": nombre, "puntos_extra": puntos_extra}).execute()
-        cargar_ajustes_puntos.clear()
-    except Exception: pass
-
 def guardar_goleador_real(jugador, equipo, goles, goles_penalti=0):
     try:
         sb = get_supabase()
@@ -234,11 +240,47 @@ def borrar_goleador_real(jugador):
 if "admin" not in st.session_state:
     st.session_state.admin = False
 
-participantes     = cargar_participantes()
+# ══════════════════════════════════════════
+# SIDEBAR
+# ══════════════════════════════════════════
+with st.sidebar:
+    st.markdown('<div class="titulo-principal">⚽ Porra<br>Mundial 2026</div>', unsafe_allow_html=True)
+    st.markdown('<div class="subtitulo">USA · CANADA · MEXICO</div>', unsafe_allow_html=True)
+    
+    # NUEVO: Selector de Liga
+    st.markdown("---")
+    liga_actual = st.text_input("🔑 Código de tu Liga:", placeholder="Ej: TRABAJO").strip().upper()
+    if liga_actual:
+        st.success(f"Estás en la liga: **{liga_actual}**")
+    else:
+        st.warning("Escribe el código de tu liga para ver tu clasificación.")
+    st.markdown("---")
+
+    with st.expander("🔐 Acceso Admin"):
+        if not st.session_state.admin:
+            pwd = st.text_input("Contraseña", type="password", key="pwd_input")
+            if st.button("Entrar", use_container_width=True):
+                if pwd == ADMIN_PASSWORD:
+                    st.session_state.admin = True; st.rerun()
+                else:
+                    st.error("Contraseña incorrecta")
+        else:
+            st.success("✅ Admin activo")
+            if st.button("Cerrar sesión", use_container_width=True):
+                st.session_state.admin = False; st.rerun()
+
+    opciones_menu = ["📊 Clasificación General", "🔥 Tabla de Goleadores", "🏆 Tabla de Grupos", "📅 Resultados Partidos", "⚽ Cuadro Eliminatorias"]
+    if st.session_state.admin:
+        opciones_menu += ["👥 Participantes (Liga)", "🔧 Resultados Grupos (Global)", "⚔️ Resultados Elim. (Global)", "🥇 Goles Equipo (Global)", "🎯 Goles Jugadores (Global)", "➕ Ajuste Puntos (Liga)"]
+    menu = st.radio("", opciones_menu, label_visibility="collapsed")
+
+# CARGA DE DATOS DEPENDIENTES DE LA LIGA Y GLOBALES
+participantes     = cargar_participantes(liga_actual)
+ajustes_manuales  = cargar_ajustes_puntos(liga_actual)
+
 resultados_grupos = cargar_resultados_grupos()
 resultados_elim   = cargar_resultados_elim()
 pichichi          = cargar_pichichi()
-ajustes_manuales  = cargar_ajustes_puntos()
 goleadores_reales = cargar_pichichis_reales()
 
 def obtener_tabla_grupos():
@@ -282,7 +324,6 @@ def calcular_puntos(df_tabla):
         else: detalles[eA]["Gr(Partidos)"]+=1; detalles[eB]["Gr(Partidos)"]+=1
         
     terceros_bono=[]
-    
     for g in GRUPOS.keys():
         partidos = [p for p in resultados_grupos.values() if p['equipo_A'] in GRUPOS[g]]
         eqs=df_tabla[df_tabla['Grupo']==g].to_dict('records')
@@ -299,10 +340,8 @@ def calcular_puntos(df_tabla):
         eA,eB,res,gan=p['equipo_A'],p['equipo_B'],p['resolucion'],p['ganador']
         dif=p['goles_A']-p['goles_B']
         if m_id=="M103 (3º y 4º)": detalles[gan]["Eliminatorias"]+=3; continue
-        
         if dif>=3: detalles[eA]["Eliminatorias"]+=1; detalles[eB]["Eliminatorias"]-=1
         elif dif<=-3: detalles[eB]["Eliminatorias"]+=1; detalles[eA]["Eliminatorias"]-=1
-        
         if res=="90 min":
             if dif>0: detalles[eA]["Eliminatorias"]+=4
             elif dif<0: detalles[eB]["Eliminatorias"]+=4
@@ -322,42 +361,19 @@ df_tabla   = obtener_tabla_grupos()
 pos_grupos = obtener_clasificados(df_tabla)
 
 # ══════════════════════════════════════════
-# SIDEBAR
-# ══════════════════════════════════════════
-with st.sidebar:
-    st.markdown('<div class="titulo-principal">⚽ Porra<br>Mundial 2026</div>', unsafe_allow_html=True)
-    st.markdown('<div class="subtitulo">USA · CANADA · MEXICO</div>', unsafe_allow_html=True)
-    st.divider()
-
-    with st.expander("🔐 Acceso Admin"):
-        if not st.session_state.admin:
-            pwd = st.text_input("Contraseña", type="password", key="pwd_input")
-            if st.button("Entrar", use_container_width=True):
-                if pwd == ADMIN_PASSWORD:
-                    st.session_state.admin = True; st.rerun()
-                else:
-                    st.error("Contraseña incorrecta")
-        else:
-            st.success("✅ Admin activo")
-            if st.button("Cerrar sesión", use_container_width=True):
-                st.session_state.admin = False; st.rerun()
-
-    st.divider()
-    opciones_menu = ["📊 Clasificación General", "🔥 Tabla de Goleadores", "🏆 Tabla de Grupos", "📅 Resultados Partidos", "⚽ Cuadro Eliminatorias"]
-    if st.session_state.admin:
-        opciones_menu += ["👥 Participantes", "🔧 Resultados Grupos", "⚔️ Resultados Eliminatorias", "🥇 Goles Equipo (+2pts)", "🎯 Añadir Goles a Jugadores", "➕ Ajuste Puntos"]
-    menu = st.radio("", opciones_menu, label_visibility="collapsed")
-
-# ══════════════════════════════════════════
-# CLASIFICACIÓN GENERAL
+# CLASIFICACIÓN GENERAL (DEPENDIENTE DE LIGA)
 # ══════════════════════════════════════════
 if menu == "📊 Clasificación General":
-    st.image("https://fotografias.antena3.com/clipping/cmsimages02/2022/12/19/57017F2A-8327-404D-8997-5C37A44CDC03/messi-replica-iconica-imagen-maradona-copa-mundo_97.jpg?crop=4096,2304,x0,y0&width=1600&height=900&optimize=low&format=webply.jpg", use_container_width=True)
+    st.image("https://upload.wikimedia.org/wikipedia/commons/b/b4/Lionel-Messi-Argentina-2022.jpg", use_container_width=True)
     st.markdown('<div class="titulo-principal">📊 Clasificación General</div>', unsafe_allow_html=True)
     st.write("")
-    if not participantes:
-        st.warning("Aún no hay participantes registrados.")
+    
+    if not liga_actual:
+        st.info("👈 **Escribe el código de tu liga en el menú lateral** para ver la clasificación.")
+    elif not participantes:
+        st.warning(f"Aún no hay participantes en la liga '{liga_actual}'.")
     else:
+        st.caption(f"🏆 Mostrando resultados para la liga: **{liga_actual}**")
         pts, detalles = calcular_puntos(df_tabla)
         lista_clasif = []
         for a, eqs in participantes.items():
@@ -417,7 +433,7 @@ if menu == "📊 Clasificación General":
                 else: st.markdown(html_partidos, unsafe_allow_html=True)
 
 # ══════════════════════════════════════════
-# TOP GOLEADORES (PUBLICO)
+# TOP GOLEADORES (GLOBAL)
 # ══════════════════════════════════════════
 elif menu == "🔥 Tabla de Goleadores":
     st.markdown('<div class="titulo-principal">🔥 Top Pichichis</div>', unsafe_allow_html=True)
@@ -445,7 +461,7 @@ elif menu == "🔥 Tabla de Goleadores":
             """, unsafe_allow_html=True)
 
 # ══════════════════════════════════════════
-# TABLA DE GRUPOS
+# TABLA DE GRUPOS (GLOBAL)
 # ══════════════════════════════════════════
 elif menu == "🏆 Tabla de Grupos":
     st.markdown('<div class="titulo-principal">🏆 Tabla de Grupos</div>', unsafe_allow_html=True)
@@ -465,7 +481,7 @@ elif menu == "🏆 Tabla de Grupos":
             st.dataframe(df_g[['','Equipo','PJ','Pts','GF','GC','Dif']].style.apply(hl,axis=1), use_container_width=True, hide_index=False)
 
 # ══════════════════════════════════════════
-# RESULTADOS PARTIDOS PÚBLICOS
+# RESULTADOS PARTIDOS PÚBLICOS (GLOBAL)
 # ══════════════════════════════════════════
 elif menu == "📅 Resultados Partidos":
     st.markdown('<div class="titulo-principal">📅 Resultados de los Partidos</div>', unsafe_allow_html=True)
@@ -506,7 +522,7 @@ elif menu == "📅 Resultados Partidos":
                 </div>""", unsafe_allow_html=True)
 
 # ══════════════════════════════════════════
-# CUADRO ELIMINATORIAS
+# CUADRO ELIMINATORIAS (GLOBAL)
 # ══════════════════════════════════════════
 elif menu == "⚽ Cuadro Eliminatorias":
     st.markdown('<div class="titulo-principal">⚽ Cuadro de Eliminatorias</div>', unsafe_allow_html=True)
@@ -540,28 +556,44 @@ elif menu == "⚽ Cuadro Eliminatorias":
         with cf[i]: mostrar_cruce(m_id, qu_gan(m1.replace("_L",""),perdedor="_L" in m1), qu_gan(m2.replace("_L",""),perdedor="_L" in m2))
 
 # ══════════════════════════════════════════
-# ADMIN - PARTICIPANTES
+# ADMIN - PARTICIPANTES (LOCAL POR LIGA)
 # ══════════════════════════════════════════
-elif menu == "👥 Participantes":
-    with st.form("form_amigos"):
-        nombre = st.text_input("Nombre del participante")
-        equipos_sel = st.multiselect("Selecciones (máx 30 pts)", list(VALOR_EQUIPOS.keys()), format_func=lambda x: f"{flag(x)} {x} ({VALOR_EQUIPOS[x]} pts)")
-        coste = sum(VALOR_EQUIPOS[e] for e in equipos_sel)
-        st.markdown(f"Coste: <b style='color:{'green' if coste <= 30 else 'red'}'>{coste} / 30 pts</b>", unsafe_allow_html=True)
-        if st.form_submit_button("✅ Añadir / Actualizar", use_container_width=True):
-            if not nombre: st.error("Falta el nombre.")
-            elif coste > 30: st.error("Demasiados puntos.")
-            else: participantes[nombre] = equipos_sel; guardar_participantes(participantes); st.success(f"✅ Guardado"); st.rerun()
-    if participantes:
-        for nom, eqs in participantes.items():
-            c1,c2 = st.columns([5,1])
-            c1.markdown(f"**{nom}** ({sum(VALOR_EQUIPOS[e] for e in eqs)} pts) {' '.join([flag(e) for e in eqs])}")
-            if c2.button("🗑️", key=f"del_{nom}"): del participantes[nom]; guardar_participantes(participantes); st.rerun()
+elif menu == "👥 Participantes (Liga)":
+    st.markdown('<div class="titulo-principal">👥 Gestión de Participantes</div>', unsafe_allow_html=True)
+    if not liga_actual:
+        st.error("⚠️ PRIMERO ESCRIBE EL CÓDIGO DE UNA LIGA EN EL MENÚ LATERAL PARA AÑADIR PARTICIPANTES.")
+    else:
+        st.info(f"Estás añadiendo jugadores a la liga: **{liga_actual}**")
+        with st.form("form_amigos"):
+            nombre = st.text_input("Nombre del participante")
+            equipos_sel = st.multiselect("Selecciones (máx 30 pts)", list(VALOR_EQUIPOS.keys()), format_func=lambda x: f"{flag(x)} {x} ({VALOR_EQUIPOS[x]} pts)")
+            coste = sum(VALOR_EQUIPOS[e] for e in equipos_sel)
+            st.markdown(f"Coste: <b style='color:{'green' if coste <= 30 else 'red'}'>{coste} / 30 pts</b>", unsafe_allow_html=True)
+            if st.form_submit_button("✅ Añadir / Actualizar", use_container_width=True):
+                if not nombre: st.error("Falta el nombre.")
+                elif coste > 30: st.error("Demasiados puntos.")
+                else: 
+                    participantes[nombre] = equipos_sel
+                    guardar_participantes(liga_actual, participantes)
+                    st.success(f"✅ Guardado en {liga_actual}")
+                    st.rerun()
+        
+        if participantes:
+            st.divider()
+            st.markdown(f"### Jugadores en {liga_actual}")
+            for nom, eqs in participantes.items():
+                c1,c2 = st.columns([5,1])
+                c1.markdown(f"**{nom}** ({sum(VALOR_EQUIPOS[e] for e in eqs)} pts) {' '.join([flag(e) for e in eqs])}")
+                if c2.button("🗑️", key=f"del_{nom}"): 
+                    del participantes[nom]
+                    guardar_participantes(liga_actual, participantes)
+                    st.rerun()
 
 # ══════════════════════════════════════════
-# ADMIN - RESULTADOS GRUPOS
+# ADMIN - RESULTADOS GRUPOS (GLOBAL)
 # ══════════════════════════════════════════
-elif menu == "🔧 Resultados Grupos":
+elif menu == "🔧 Resultados Grupos (Global)":
+    st.info("🌐 IMPORTANTE: Lo que cambies aquí afectará a TODAS las ligas a la vez.")
     cols = st.columns(3)
     for idx,(grupo,eq) in enumerate(GRUPOS.items()):
         with cols[idx%3]:
@@ -577,9 +609,10 @@ elif menu == "🔧 Resultados Grupos":
                 elif g.get("goles_A","")!="" and gA=="" and gB=="": borrar_resultado_grupo(key)
 
 # ══════════════════════════════════════════
-# ADMIN - RESULTADOS ELIMINATORIAS
+# ADMIN - RESULTADOS ELIMINATORIAS (GLOBAL)
 # ══════════════════════════════════════════
-elif menu == "⚔️ Resultados Eliminatorias":
+elif menu == "⚔️ Resultados Elim. (Global)":
+    st.info("🌐 IMPORTANTE: Lo que cambies aquí afectará a TODAS las ligas a la vez.")
     def renderizar(m_id, eA, eB, col):
         with col:
             st.markdown(f"**{m_id}**")
@@ -608,16 +641,16 @@ elif menu == "⚔️ Resultados Eliminatorias":
     cf=st.columns(2); [renderizar(m_id,qu_gan(m1.replace("_L",""),perdedor="_L" in m1),qu_gan(m2.replace("_L",""),perdedor="_L" in m2),cf[i]) for i,(m_id,(m1,m2)) in enumerate(CRUCES_FINALES.items())]
 
 # ══════════════════════════════════════════
-# ADMIN - GOLES DE EQUIPOS Y JUGADORES
+# ADMIN - GOLES DE EQUIPOS Y JUGADORES (GLOBAL)
 # ══════════════════════════════════════════
-elif menu == "🥇 Goles Equipo (+2pts)":
-    st.info("La selección que más goles meta en el torneo da +2 pts.")
+elif menu == "🥇 Goles Equipo (Global)":
+    st.info("🌐 GLOBAL: La selección que elijas dará +2 pts a todos los que la tengan, en TODAS las ligas.")
     sel = st.selectbox("Selección Pichichi", ["Ninguno aún..."] + list(VALOR_EQUIPOS.keys()), index=(["Ninguno aún..."] + list(VALOR_EQUIPOS.keys())).index(pichichi) if pichichi else 0)
     if st.button("💾 Guardar",use_container_width=True): guardar_pichichi(sel if sel!="Ninguno aún..." else None); st.success("Guardado")
 
-elif menu == "🎯 Añadir Goles a Jugadores":
+elif menu == "🎯 Goles Jugadores (Global)":
     st.markdown('<div class="titulo-principal">🎯 Añadir Goles (Pichichis)</div>', unsafe_allow_html=True)
-    st.info("Si el jugador ya existe, selecciónalo en la lista. Si no, dale a 'CREAR NUEVO'.")
+    st.info("🌐 GLOBAL: Los goles que sumes aquí aparecerán en la lista pública de todas las ligas.")
     
     jugadores_creados = sorted([j['jugador'] for j in goleadores_reales])
     opciones_jugador = ["✨ CREAR NUEVO JUGADOR ✨"] + jugadores_creados
@@ -671,8 +704,20 @@ elif menu == "🎯 Añadir Goles a Jugadores":
                 borrar_goleador_real(j['jugador'])
                 st.rerun()
 
-elif menu == "➕ Ajuste Puntos":
-    participante_sel = st.selectbox("Jugador:", list(participantes.keys()))
-    if participante_sel:
-        nuevo_valor = st.number_input("Puntos extra:", value=ajustes_manuales.get(participante_sel, 0))
-        if st.button("💾 Aplicar"): guardar_ajuste_puntos(participante_sel, nuevo_valor); st.rerun()
+# ══════════════════════════════════════════
+# ADMIN - AJUSTE DE PUNTOS (LOCAL POR LIGA)
+# ══════════════════════════════════════════
+elif menu == "➕ Ajuste Puntos (Liga)":
+    st.markdown('<div class="titulo-principal">➕ Ajuste Manual de Puntos</div>', unsafe_allow_html=True)
+    if not liga_actual:
+        st.error("⚠️ PRIMERO ESCRIBE EL CÓDIGO DE UNA LIGA EN EL MENÚ LATERAL.")
+    elif not participantes:
+        st.warning(f"No hay participantes en la liga '{liga_actual}'.")
+    else:
+        st.info(f"Ajustando puntos para jugadores de la liga: **{liga_actual}**")
+        participante_sel = st.selectbox("Jugador:", list(participantes.keys()))
+        if participante_sel:
+            nuevo_valor = st.number_input("Puntos extra:", value=ajustes_manuales.get(participante_sel, 0))
+            if st.button("💾 Aplicar"): 
+                guardar_ajuste_puntos(liga_actual, participante_sel, nuevo_valor)
+                st.rerun()
