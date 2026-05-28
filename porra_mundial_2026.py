@@ -8,6 +8,10 @@ st.set_page_config(page_title="Porra Mundial 2026 🌍", layout="wide", initial_
 # CSS personalizado
 st.markdown("""
 <style>
+    /* Ocultar el menú superior (Header) y el footer de Streamlit para que parezca una app nativa */
+    [data-testid="stHeader"] { display: none; }
+    footer { display: none; }
+    
     .main { background-color: #0e1117; }
     .stApp { background: linear-gradient(135deg, #0e1117 0%, #1a1f2e 100%); }
     
@@ -45,6 +49,13 @@ st.markdown("""
         padding: 20px;
         margin: 10px 0;
         box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    }
+    .mini-card {
+        background-color: #1e2530;
+        border: 1px solid #333;
+        border-radius: 8px;
+        padding: 12px;
+        margin-bottom: 8px;
     }
     .resultado-badge {
         background: #FFD700;
@@ -420,7 +431,6 @@ with st.sidebar:
 if menu_admin_sel != "(Cerrar Menú Admin)":
     menu = menu_admin_sel
 else:
-    # Menú desplegable central para usuarios
     menu = st.selectbox("👉 Elige qué quieres ver:", ["📊 Clasificación General", "🔥 Tabla de Goleadores", "🏆 Tabla de Grupos", "📅 Resultados Partidos", "⚽ Cuadro Eliminatorias"])
     st.write("")
 
@@ -453,23 +463,36 @@ if menu == "📊 Clasificación General":
 
             st.markdown(f'<div class="card" style="margin-bottom: 10px;"><div style="display:flex; justify-content:space-between; align-items:center;"><div><span style="font-size:1.5em">{med}</span><span style="font-size:1.3em; font-weight:700; margin-left:10px; color:white;">{row["Jugador"]}</span>{extra_badge}<br><small style="color:#888">{equipos_str} {nombres_str}</small></div><div style="font-size:2em; font-weight:900; color:#FFD700">{row["Puntos"]}<span style="font-size:0.4em; color:#888"> pts</span></div></div></div>', unsafe_allow_html=True)
             
+            # --- POPOVERS ESTILIZADOS ---
             col_btn1, col_btn2 = st.columns(2)
             
             with col_btn1.popover("🔍 Ver Puntos", use_container_width=True):
-                st.markdown(f"**Desglose de {row['Jugador']}**")
+                st.markdown(f"#### Desglose de Puntos")
                 for eq in row["Equipos"]:
                     det = detalles[eq]
                     desglose = []
-                    if det['Gr(Partidos)'] != 0: desglose.append(f"Fase Grupos: {det['Gr(Partidos)']}")
-                    if det['Gr(Goles)'] != 0: desglose.append(f"Goleadas Gr: {det['Gr(Goles)']}")
-                    if det['Gr(Bono)'] != 0: desglose.append(f"Bono Posición: {det['Gr(Bono)']}")
+                    if det['Gr(Partidos)'] != 0: desglose.append(f"Grupos: {det['Gr(Partidos)']}")
+                    if det['Gr(Goles)'] != 0: desglose.append(f"Goleadas: {det['Gr(Goles)']}")
+                    if det['Gr(Bono)'] != 0: desglose.append(f"Bono: {det['Gr(Bono)']}")
                     if det['Eliminatorias'] != 0: desglose.append(f"Eliminatorias: {det['Eliminatorias']}")
                     if det['Pichichi'] != 0: desglose.append(f"Pichichi: {det['Pichichi']}")
                     str_desglose = " · ".join(desglose) if desglose else "Aún sin puntos"
-                    st.write(f"{flag(eq)} **{eq}** (`{pts[eq]} pts`) ➜ <span style='font-size:0.85em; color:#aaa;'>{str_desglose}</span>", unsafe_allow_html=True)
+                    
+                    # Mini tarjeta para cada selección dentro del popover
+                    st.markdown(f"""
+                    <div class="mini-card" style="display:flex; justify-content:space-between; align-items:center;">
+                        <div>
+                            <span style="font-size:1.1em; color:white;">{flag(eq)} <b>{eq}</b></span><br>
+                            <span style="font-size:0.75em; color:#aaa;">{str_desglose}</span>
+                        </div>
+                        <div style="background-color:#FFD700; color:#000; padding:4px 10px; border-radius:6px; font-weight:bold; font-size:1.1em;">
+                            {pts[eq]}
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
 
             with col_btn2.popover("⚽ Ver Partidos", use_container_width=True):
-                st.markdown(f"**Partidos de {row['Jugador']}**")
+                st.markdown(f"#### Historial de Partidos")
                 html_partidos = ""
                 for g, equipos in GRUPOS.items():
                     cruces_g = [(equipos[0],equipos[1]), (equipos[2],equipos[3]), (equipos[0],equipos[2]), (equipos[1],equipos[3]), (equipos[0],equipos[3]), (equipos[1],equipos[2])]
@@ -480,11 +503,28 @@ if menu == "📊 Clasificación General":
                             col_A, bold_A = ("#FFD700", "bold") if eA in row["Equipos"] else ("#888", "normal")
                             col_B, bold_B = ("#FFD700", "bold") if eB in row["Equipos"] else ("#888", "normal")
                             
+                            # Mini tarjeta de partido dentro del popover
                             if key in resultados_grupos:
                                 p = resultados_grupos[key]
-                                html_partidos += f"<div style='display:flex; flex-direction:column; padding:6px 0; border-bottom:1px dashed #2d3748;'><div style='font-size:0.65em; color:#888; text-align:center;'>🕒 {fecha_str} - Grupo {g}</div><div style='display:flex; justify-content:space-between; align-items:center; font-size:0.9em;'><span style='color:{col_A}; font-weight:{bold_A}; width:40%; text-align:right;'>{flag(eA)} {eA}</span> <span style='background:#1e2530; border: 1px solid #333; padding:2px 10px; border-radius:6px; color:white; font-weight:bold;'>{p['goles_A']} - {p['goles_B']}</span> <span style='color:{col_B}; font-weight:{bold_B}; width:40%; text-align:left;'>{eB} {flag(eB)}</span></div></div>"
+                                html_partidos += f"""
+                                <div class="mini-card">
+                                    <div style="text-align:center; font-size:0.65em; color:#888; margin-bottom:6px;">🕒 {fecha_str} - Grupo {g}</div>
+                                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                                        <span style="color:{col_A}; font-weight:{bold_A}; width:40%; text-align:right; font-size:0.9em;">{flag(eA)} {eA}</span> 
+                                        <span style="background:#252d3a; border: 1px solid #444; padding:3px 10px; border-radius:6px; color:white; font-weight:bold;">{p['goles_A']} - {p['goles_B']}</span> 
+                                        <span style="color:{col_B}; font-weight:{bold_B}; width:40%; text-align:left; font-size:0.9em;">{eB} {flag(eB)}</span>
+                                    </div>
+                                </div>"""
                             else:
-                                html_partidos += f"<div style='display:flex; flex-direction:column; padding:6px 0; border-bottom:1px dashed #2d3748;'><div style='font-size:0.65em; color:#888; text-align:center;'>🕒 {fecha_str} - Grupo {g}</div><div style='display:flex; justify-content:space-between; align-items:center; font-size:0.9em;'><span style='color:{col_A}; font-weight:{bold_A}; width:40%; text-align:right;'>{flag(eA)} {eA}</span> <span style='color:#555;'>vs</span> <span style='color:{col_B}; font-weight:{bold_B}; width:40%; text-align:left;'>{eB} {flag(eB)}</span></div></div>"
+                                html_partidos += f"""
+                                <div class="mini-card">
+                                    <div style="text-align:center; font-size:0.65em; color:#888; margin-bottom:6px;">🕒 {fecha_str} - Grupo {g}</div>
+                                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                                        <span style="color:{col_A}; font-weight:{bold_A}; width:40%; text-align:right; font-size:0.9em;">{flag(eA)} {eA}</span> 
+                                        <span style="color:#555; font-weight:bold;">vs</span> 
+                                        <span style="color:{col_B}; font-weight:{bold_B}; width:40%; text-align:left; font-size:0.9em;">{eB} {flag(eB)}</span>
+                                    </div>
+                                </div>"""
                                 
                 for m_id, p in resultados_elim.items():
                     eA, eB = p['equipo_A'], p['equipo_B']
@@ -492,8 +532,17 @@ if menu == "📊 Clasificación General":
                         fecha_elim = FECHAS_ELIM.get(m_id, "")
                         col_A, bold_A = ("#FFD700", "bold") if eA in row["Equipos"] else ("#888", "normal")
                         col_B, bold_B = ("#FFD700", "bold") if eB in row["Equipos"] else ("#888", "normal")
-                        res_extra = f"<br><span style='font-size:0.7em; color:#888;'>{p['resolucion']}</span>" if p['resolucion'] != "90 min" else ""
-                        html_partidos += f"<div style='display:flex; flex-direction:column; padding:6px 0; border-bottom:1px dashed #2d3748;'><div style='font-size:0.65em; color:#888; text-align:center;'>🕒 {fecha_elim} - {m_id}</div><div style='display:flex; justify-content:space-between; align-items:center; font-size:0.9em;'><span style='color:{col_A}; font-weight:{bold_A}; width:40%; text-align:right;'>{flag(eA)} {eA}</span> <span style='background:#1e2530; border: 1px solid #333; padding:2px 10px; border-radius:6px; color:white; font-weight:bold; text-align:center;'>{p['goles_A']} - {p['goles_B']}{res_extra}</span> <span style='color:{col_B}; font-weight:{bold_B}; width:40%; text-align:left;'>{eB} {flag(eB)}</span></div></div>"
+                        res_extra = f"<br><span style='font-size:0.7em; color:#888; font-weight:normal;'>{p['resolucion']}</span>" if p['resolucion'] != "90 min" else ""
+                        
+                        html_partidos += f"""
+                        <div class="mini-card">
+                            <div style="text-align:center; font-size:0.65em; color:#888; margin-bottom:6px;">🕒 {fecha_elim} - {m_id}</div>
+                            <div style="display:flex; justify-content:space-between; align-items:center;">
+                                <span style="color:{col_A}; font-weight:{bold_A}; width:40%; text-align:right; font-size:0.9em;">{flag(eA)} {eA}</span> 
+                                <span style="background:#252d3a; border: 1px solid #444; padding:3px 10px; border-radius:6px; color:white; font-weight:bold; text-align:center; line-height:1.2;">{p['goles_A']} - {p['goles_B']}{res_extra}</span> 
+                                <span style="color:{col_B}; font-weight:{bold_B}; width:40%; text-align:left; font-size:0.9em;">{eB} {flag(eB)}</span>
+                            </div>
+                        </div>"""
                 
                 if html_partidos == "": st.caption("Aún no tienen partidos.")
                 else: st.markdown(html_partidos, unsafe_allow_html=True)
