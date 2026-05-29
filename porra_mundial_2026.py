@@ -8,30 +8,21 @@ st.set_page_config(page_title="Porra Mundial 2026", layout="wide", initial_sideb
 # CSS personalizado global
 st.markdown("""
 <style>
-    /* Fulminar cabeceras y espacios vacíos superiores */
     [data-testid="stHeader"], [data-testid="stSidebar"], footer { display: none !important; }
     [data-testid="block-container"] { max-width: 650px; margin: 0 auto; padding-top: 0 !important; padding-bottom: 3rem; }
-    
     .stApp, .stMarkdown, p, label { color: #f0f2f6 !important; }
     .main { background-color: #0e1117; }
     .stApp { background: linear-gradient(135deg, #0e1117 0%, #1a1f2e 100%); }
     
-    /* Botones dorados y blindados */
-    button[kind="secondary"], button[kind="primary"], div.stButton > button {
-        background-color: #FFD700 !important; border: 2px solid #B8860B !important; border-radius: 8px !important; margin-bottom: 5px;
-    }
-    button[kind="secondary"] p, button[kind="primary"] p, div.stButton > button p {
-        color: #000000 !important; font-weight: 900 !important; font-size: 1.1em !important; margin: 0 !important; padding: 0 !important;
-    }
+    button[kind="secondary"], button[kind="primary"], div.stButton > button { background-color: #FFD700 !important; border: 2px solid #B8860B !important; border-radius: 8px !important; margin-bottom: 5px; }
+    button[kind="secondary"] p, button[kind="primary"] p, div.stButton > button p { color: #000000 !important; font-weight: 900 !important; font-size: 1.1em !important; margin: 0 !important; padding: 0 !important; }
     button:hover { background-color: #FFA500 !important; }
     
-    /* Expanders Nativos para la Clasificación (INAMOVIBLES Y PERFECTOS) */
     [data-testid="stExpander"] { background-color: #1e2530; border: 1px solid #333; border-radius: 8px; margin-bottom: 10px; }
     [data-testid="stExpander"] summary { background-color: transparent !important; padding: 15px !important; }
     [data-testid="stExpander"] summary p { font-size: 1.2em; font-weight: bold; color: white; margin: 0; }
     [data-testid="stExpander"] summary:hover { background-color: rgba(255, 215, 0, 0.1) !important; }
     
-    /* Títulos inquebrantables */
     .titulo-principal { text-align: center; font-size: clamp(1.4em, 6vw, 2.5em); font-weight: 900; background: linear-gradient(90deg, #FFD700, #FF6B35, #FFD700); -webkit-background-clip: text; -webkit-text-fill-color: transparent; padding: 15px 0 5px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .titulo-landing { text-align: center; font-size: clamp(2.2em, 8vw, 4.5em); font-weight: 900; background: linear-gradient(90deg, #FFD700, #FF6B35, #FFD700); -webkit-background-clip: text; -webkit-text-fill-color: transparent; padding: 10px 0 0 0; line-height: 1.1; margin-top: 10px; white-space: nowrap; }
     .subtitulo { text-align: center; color: #aaa !important; font-size: clamp(0.8em, 3vw, 1.2em); margin-bottom: 20px; letter-spacing: 5px; }
@@ -40,6 +31,11 @@ st.markdown("""
     .mini-card { background-color: #1a202a; border: 1px solid #333; border-radius: 8px; padding: 12px; margin-bottom: 8px; }
     
     .login-wrapper { display: flex; flex-direction: column; align-items: center; width: 100%; margin-top: 0; }
+    
+    /* Personalización pestañas de inicio */
+    [data-testid="stTabs"] [data-baseweb="tab-list"] { background-color: #1e2530; border-radius: 8px; padding: 5px; gap: 5px; }
+    [data-testid="stTabs"] [data-baseweb="tab"] { background-color: transparent; border-radius: 6px; color: white !important; }
+    [data-testid="stTabs"] [aria-selected="true"] { background-color: #333f50 !important; font-weight: bold; color: #FFD700 !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -77,6 +73,14 @@ FECHAS_ELIM = {"M73":"28 Jun - 18:00","M74":"28 Jun - 22:00","M75":"29 Jun - 18:
 def get_supabase(): return create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
 
 @st.cache_data(ttl=30)
+def obtener_ligas_existentes():
+    try:
+        res = get_supabase().table("participantes").select("liga").execute()
+        if res.data: return sorted(list(set([r["liga"] for r in res.data])))
+        return []
+    except: return []
+
+@st.cache_data(ttl=30)
 def cargar_participantes(liga):
     if not liga: return {}
     sb = get_supabase(); rows = sb.table("participantes").select("*").eq("liga", liga).execute().data
@@ -94,6 +98,7 @@ def guardar_participantes(liga, part_dict):
     rows = [{"liga": liga, "nombre": n, "equipos": ",".join(e)} for n, e in part_dict.items()]
     if rows: sb.table("participantes").insert(rows).execute()
     cargar_participantes.clear()
+    obtener_ligas_existentes.clear()
 
 def guardar_ajuste_puntos(liga, nombre, pts):
     if not liga: return
@@ -175,31 +180,39 @@ if not st.session_state.liga_actual:
     st.image("https://fotografias.antena3.com/clipping/cmsimages02/2022/12/19/57017F2A-8327-404D-8997-5C37A44CDC03/messi-replica-iconica-imagen-maradona-copa-mundo_97.jpg?crop=4096,2304,x0,y0&width=1600&height=900&optimize=low&format=webply", use_container_width=True)
     st.markdown('<div class="titulo-landing">⚽ Porra Mundial 2026</div>', unsafe_allow_html=True)
     st.markdown('<div class="subtitulo">USA · CANADA · MEXICO</div>', unsafe_allow_html=True)
-    
     st.write("")
-    st.markdown('<h3 style="color:white; text-align:center; margin-top:10px;">🏆 Accede a tu Porra</h3>', unsafe_allow_html=True)
-    st.markdown('<p style="color:#aaa; text-align:center; margin-bottom:20px;">Introduce el código secreto para entrar a tu liga.</p>', unsafe_allow_html=True)
     
-    c1, c2, c3 = st.columns([1, 8, 1])
-    with c2:
-        codigo = st.text_input("Código", placeholder="Ejemplo: CUADRILLA...", label_visibility="collapsed").strip().upper()
+    # SISTEMA DE INICIO CON PESTAÑAS
+    tab1, tab2 = st.tabs(["🏆 Entrar a Liga", "✨ Crear Nueva"])
+    
+    with tab1:
+        st.markdown('<p style="color:#aaa; text-align:center; margin-bottom:15px; margin-top:10px;">Selecciona tu grupo de amigos para entrar.</p>', unsafe_allow_html=True)
+        ligas_disp = obtener_ligas_existentes()
+        
+        if not ligas_disp:
+            st.info("Aún no hay ligas creadas. Ve a la pestaña 'Crear Nueva'.")
+        else:
+            liga_seleccionada = st.selectbox("Ligas disponibles", ligas_disp, label_visibility="collapsed")
+            st.write("")
+            if st.button("🚀 ENTRAR A LA PORRA", use_container_width=True):
+                st.session_state.liga_actual = liga_seleccionada
+                st.rerun()
+                
+    with tab2:
+        st.markdown('<p style="color:#aaa; text-align:center; margin-bottom:15px; margin-top:10px;">Inventa un nombre único para tu porra.</p>', unsafe_allow_html=True)
+        nueva_liga_input = st.text_input("Nombre de la Liga", placeholder="Ej: LA_CUADRILLA_26", label_visibility="collapsed").strip().upper()
         st.write("")
-        if st.button("🚀 ENTRAR A MI LIGA", use_container_width=True):
-            if codigo:
-                if st.session_state.admin: 
-                    st.session_state.liga_actual = codigo; st.rerun()
-                else:
-                    existe = False
-                    try:
-                        check = get_supabase().table("participantes").select("nombre").eq("liga", codigo).limit(1).execute()
-                        if check.data and len(check.data) > 0: existe = True
-                        else: st.error(f"❌ La liga '{codigo}' no existe. Comprueba el código.")
-                    except Exception: st.error("Hubo un problema de conexión. Inténtalo de nuevo.")
-                    if existe: st.session_state.liga_actual = codigo; st.rerun()
-            else: st.error("Escribe un código para entrar.")
-            
+        if st.button("✨ CREAR Y ENTRAR", use_container_width=True):
+            if nueva_liga_input:
+                st.session_state.liga_actual = nueva_liga_input
+                st.rerun()
+            else:
+                st.error("Por favor, escribe un nombre para la liga.")
+                
     st.markdown("</div>", unsafe_allow_html=True)
     st.write("")
+    st.write("")
+    
     if not st.session_state.admin:
         with st.expander("⚙️ Acceso Administrador"):
             pwd = st.text_input("Contraseña Admin", type="password")
@@ -256,7 +269,6 @@ def calcular_puntos(df):
     pt={e:0 for e in VALOR_EQUIPOS.keys()}
     det={e:{"Gr(Partidos)":0,"Gr(Goles)":0,"Gr(Bono)":0,"Eliminatorias":0,"Pichichi":0, "Log_Elim":[]} for e in VALOR_EQUIPOS.keys()}
     
-    # 1. PUNTOS DE GRUPOS
     for p in resultados_grupos.values():
         eA,eB=p['equipo_A'],p['equipo_B']; dif=p['goles_A']-p['goles_B']
         if dif>=3: det[eA]["Gr(Goles)"]+=1; det[eB]["Gr(Goles)"]-=1
@@ -276,7 +288,6 @@ def calcular_puntos(df):
     ter_b = sorted([e for g in GRUPOS.keys() for e in df[df['Grupo']==g].to_dict('records') if df[df['Grupo']==g].to_dict('records').index(e)==2 and len([p for p in resultados_grupos.values() if p['equipo_A'] in GRUPOS[g]])==6], key=lambda x:(x['Pts'],x['Dif'],x['GF']), reverse=True)
     for i in range(min(8,len(ter_b))): det[ter_b[i]['Equipo']]["Gr(Bono)"]+=1
     
-    # 2. PUNTOS DE ELIMINATORIAS 
     for m_id,p in resultados_elim.items():
         eA,eB,res,gan=p['equipo_A'],p['equipo_B'],p['resolucion'],p['ganador']
         dif=p['goles_A']-p['goles_B']
@@ -355,7 +366,6 @@ with col_btn:
 
 st.write("")
 
-# NUEVO ORDEN DEL MENÚ CON LA OPCIÓN PARA CAMBIAR DE LIGA RÁPIDO
 opciones_menu = [
     "📊 Clasificación General", 
     "🏆 Tabla de Grupos", 
@@ -381,46 +391,37 @@ if menu == "--- ZONA ADMIN ---": st.info("👆 Selecciona una herramienta de adm
 
 
 # ══════════════════════════════════════════
-# VISTAS PÚBLICAS Y CAMBIO DE LIGA
+# VISTAS PÚBLICAS
 # ══════════════════════════════════════════
 
-# --- 0. CAMBIAR DE LIGA (Atajo rápido) ---
+# --- 0. CAMBIAR DE LIGA RÁPIDO ---
 if menu == "🔄 Cambiar de Liga":
     st.markdown('<div class="titulo-principal">🔄 Cambiar de Liga</div>', unsafe_allow_html=True)
     st.markdown('<div class="card" style="text-align: center;">', unsafe_allow_html=True)
-    st.markdown("<p style='color:#aaa; margin-bottom:15px;'>Introduce el código de la nueva liga a la que quieres saltar:</p>", unsafe_allow_html=True)
+    st.markdown("<p style='color:#aaa; margin-bottom:15px;'>Selecciona la nueva liga a la que quieres saltar:</p>", unsafe_allow_html=True)
     
-    nueva_liga = st.text_input("Código", placeholder="Ejemplo: OTRALIGA...", label_visibility="collapsed").strip().upper()
-    if st.button("🚀 Saltar a esta Liga", use_container_width=True):
-        if nueva_liga:
-            if st.session_state.admin: 
-                st.session_state.liga_actual = nueva_liga
-                st.session_state.menu_seleccionado = "📊 Clasificación General"
-                st.rerun()
-            else:
-                existe = False
-                try:
-                    check = get_supabase().table("participantes").select("nombre").eq("liga", nueva_liga).limit(1).execute()
-                    if check.data and len(check.data) > 0: existe = True
-                    else: st.error(f"❌ La liga '{nueva_liga}' no existe.")
-                except Exception:
-                    st.error("Hubo un problema de conexión.")
-                
-                if existe:
-                    st.session_state.liga_actual = nueva_liga
-                    st.session_state.menu_seleccionado = "📊 Clasificación General"
-                    st.rerun()
-        else:
-            st.warning("Escribe un código primero.")
+    ligas_todas = obtener_ligas_existentes()
+    if ligas_todas:
+        liga_salto = st.selectbox("Ligas disponibles:", ligas_todas, label_visibility="collapsed")
+        st.write("")
+        if st.button("🚀 Saltar a esta Liga", use_container_width=True):
+            st.session_state.liga_actual = liga_salto
+            st.session_state.menu_seleccionado = "📊 Clasificación General"
+            st.rerun()
+    else:
+        st.warning("No hay otras ligas creadas en el sistema.")
     st.markdown("</div>", unsafe_allow_html=True)
+
 
 # --- 1. CLASIFICACIÓN GENERAL ---
 elif menu == "📊 Clasificación General":
+    
     st.markdown('<div class="titulo-principal">📊 Clasificación General</div>', unsafe_allow_html=True)
     
     if not participantes: st.warning("Aún no hay participantes en esta liga.")
     else:
         st.caption("👇 Toca en la fila de cualquier jugador para desplegar sus equipos y partidos.")
+        
         for i, row in enumerate(clasificacion_ordenada):
             med = ["🥇","🥈","🥉"][i] if i < 3 else f"#{i+1}"
             
