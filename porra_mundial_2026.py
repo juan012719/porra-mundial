@@ -234,7 +234,6 @@ def calcular_puntos(df):
     pt={e:0 for e in VALOR_EQUIPOS.keys()}
     det={e:{"Gr(Partidos)":0,"Gr(Goles)":0,"Gr(Bono)":0,"Eliminatorias":0,"Pichichi":0, "Log_Elim":[]} for e in VALOR_EQUIPOS.keys()}
     
-    # 1. PUNTOS DE GRUPOS
     for p in resultados_grupos.values():
         eA,eB=p['equipo_A'],p['equipo_B']; dif=p['goles_A']-p['goles_B']
         if dif>=3: det[eA]["Gr(Goles)"]+=1; det[eB]["Gr(Goles)"]-=1
@@ -253,12 +252,10 @@ def calcular_puntos(df):
     ter_b=sorted(ter_b,key=lambda x:(x['Pts'],x['Dif'],x['GF']),reverse=True)
     for i in range(min(8,len(ter_b))): det[ter_b[i]['Equipo']]["Gr(Bono)"]+=1
     
-    # 2. PUNTOS DE ELIMINATORIAS 
     for m_id,p in resultados_elim.items():
         eA,eB,res,gan=p['equipo_A'],p['equipo_B'],p['resolucion'],p['ganador']
         dif=p['goles_A']-p['goles_B']
         
-        # Etiqueta visual para la caja negra
         if "103" in m_id: fase = "3ºy4º"
         elif "104" in m_id: fase = "Fin"
         else:
@@ -269,20 +266,20 @@ def calcular_puntos(df):
             elif num <= 102: fase = "Sem"
             else: fase = "Elim"
 
-        # EL TERCER Y CUARTO PUESTO QUEDA INTACTO: Solo el ganador se lleva 3 puntos y se ignora el resto.
         if m_id=="M103 (3º y 4º)":
             if gan in det:
                 det[gan]["Eliminatorias"]+=3
                 det[gan]["Log_Elim"].append(f"{fase}: +3")
             continue
 
+        pA_prev = det[eA]["Eliminatorias"] if eA in det else 0
+        pB_prev = det[eB]["Eliminatorias"] if eB in det else 0
+            
         pA = 0; pB = 0
         
-        # Puntos por Goleada (diferencia de 3 o más en el partido)
         if dif>=3: pA+=1; pB-=1
         elif dif<=-3: pB+=1; pA-=1
         
-        # REGLAMENTO OFICIAL DE LA PORRA (3, 2, 1)
         if res=="90 min":
             if dif>0: pA+=3
             elif dif<0: pB+=3
@@ -290,25 +287,23 @@ def calcular_puntos(df):
             if dif>0: pA+=2
             elif dif<0: pB+=2
         elif res=="Penaltis":
-            # Si llegan a penaltis, AMBOS se llevan 1 punto (gane quien gane el penalti)
             pA+=1; pB+=1
             
-        # BONOS DE LA GRAN FINAL
         if m_id=="M104 (FINAL)":
             if gan==eA: pA+=10; pB+=6
             else: pB+=10; pA+=6
             
-        # Inyectar puntos calculados e historial
         if eA in det:
             det[eA]["Eliminatorias"]+=pA
-            if pA != 0: det[eA]["Log_Elim"].append(f"{fase}: +{pA}" if pA > 0 else f"{fase}: {pA}")
+            diffA = det[eA]["Eliminatorias"] - pA_prev
+            if diffA != 0: det[eA]["Log_Elim"].append(f"{fase}: +{diffA}" if diffA > 0 else f"{fase}: {diffA}")
         if eB in det:
             det[eB]["Eliminatorias"]+=pB
-            if pB != 0: det[eB]["Log_Elim"].append(f"{fase}: +{pB}" if pB > 0 else f"{fase}: {pB}")
+            diffB = det[eB]["Eliminatorias"] - pB_prev
+            if diffB != 0: det[eB]["Log_Elim"].append(f"{fase}: +{diffB}" if diffB > 0 else f"{fase}: {diffB}")
             
     if pichichi: det[pichichi]["Pichichi"]+=2
     
-    # Total de Puntos Globales
     for eq in VALOR_EQUIPOS.keys(): 
         pt[eq] = det[eq]["Gr(Partidos)"] + det[eq]["Gr(Goles)"] + det[eq]["Gr(Bono)"] + det[eq]["Eliminatorias"] + det[eq]["Pichichi"]
     return pt, det
@@ -335,7 +330,8 @@ with col_btn:
 
 st.write("")
 
-opciones_menu = ["📊 Clasificación General", "🔥 Tabla de Goleadores", "🏆 Tabla de Grupos", "📅 Resultados Partidos", "⚽ Cuadro Eliminatorias"]
+# NUEVO: Añadida la pestaña del Sistema de Puntuación al menú
+opciones_menu = ["📊 Clasificación General", "🔥 Tabla de Goleadores", "🏆 Tabla de Grupos", "📅 Resultados Partidos", "⚽ Cuadro Eliminatorias", "📖 Sistema de Puntuación"]
 if st.session_state.admin: opciones_menu += ["--- ZONA ADMIN ---", "👥 Participantes", "🔧 Resultados Grupos", "⚔️ Resultados Elim.", "🥇 Pichichi Equipo", "🎯 Pichichis Jugadores", "➕ Ajuste Puntos"]
 
 try: idx_menu = opciones_menu.index(st.session_state.menu_seleccionado)
@@ -364,7 +360,6 @@ if menu == "📊 Clasificación General":
         for i, row in enumerate(clasificacion_ordenada):
             med = ["🥇","🥈","🥉"][i] if i < 3 else f"#{i+1}"
             
-            # EL EXPANDER NATIVO: Indestructible en móvil.
             titulo_fila = f"{med} {row['Jugador']}  |  {row['Puntos']} pts"
             
             with st.expander(titulo_fila):
@@ -384,7 +379,7 @@ if menu == "📊 Clasificación General":
                     str_desglose = " · ".join(desglose) if desglose else "Sin puntos"
                     
                     st.markdown(f"""
-                    <div class="mini-card" style="display:flex; justify-content:space-between; align-items:center;">
+                    <div class="mini-card" style="display:flex; justify-content:space-between; align-items:center; background:#1e2530;">
                         <div><span style="font-size:1.1em; color:white;">{flag(eq)} <b>{eq}</b></span><br><span style="font-size:0.8em; color:#aaa;">{str_desglose}</span></div>
                         <div style="background-color:#FFD700; color:#000; padding:2px 8px; border-radius:6px; font-weight:bold; font-size:1.1em;">{pts_globales[eq]}</div>
                     </div>""", unsafe_allow_html=True)
@@ -399,9 +394,9 @@ if menu == "📊 Clasificación General":
                             cB, bB = ("#FFD700", "bold") if eB in row["Equipos"] else ("#aaa", "normal")
                             if k in resultados_grupos:
                                 p = resultados_grupos[k]
-                                html_partidos += f"""<div class="mini-card"><div style="text-align:center; font-size:0.65em; color:#aaa; margin-bottom:4px;">🕒 {fecha} - Gr. {g}</div><div style="display:flex; justify-content:space-between; align-items:center;"><span style="color:{cA}; font-weight:{bA}; width:40%; text-align:right; font-size:0.9em;">{flag(eA)} {eA}</span> <span style="background:#252d3a; border: 1px solid #444; padding:2px 8px; border-radius:4px; color:white; font-weight:bold; font-size:0.9em;">{p['goles_A']} - {p['goles_B']}</span> <span style="color:{cB}; font-weight:{bB}; width:40%; text-align:left; font-size:0.9em;">{eB} {flag(eB)}</span></div></div>"""
+                                html_partidos += f"""<div class="mini-card" style="background:#1e2530;"><div style="text-align:center; font-size:0.65em; color:#aaa; margin-bottom:4px;">🕒 {fecha} - Gr. {g}</div><div style="display:flex; justify-content:space-between; align-items:center;"><span style="color:{cA}; font-weight:{bA}; width:40%; text-align:right; font-size:0.9em;">{flag(eA)} {eA}</span> <span style="background:#252d3a; border: 1px solid #444; padding:2px 8px; border-radius:4px; color:white; font-weight:bold; font-size:0.9em;">{p['goles_A']} - {p['goles_B']}</span> <span style="color:{cB}; font-weight:{bB}; width:40%; text-align:left; font-size:0.9em;">{eB} {flag(eB)}</span></div></div>"""
                             else:
-                                html_partidos += f"""<div class="mini-card"><div style="text-align:center; font-size:0.65em; color:#aaa; margin-bottom:4px;">🕒 {fecha} - Gr. {g}</div><div style="display:flex; justify-content:space-between; align-items:center;"><span style="color:{cA}; font-weight:{bA}; width:40%; text-align:right; font-size:0.9em;">{flag(eA)} {eA}</span> <span style="color:#aaa; font-weight:bold; font-size:0.9em;">vs</span> <span style="color:{cB}; font-weight:{bB}; width:40%; text-align:left; font-size:0.9em;">{eB} {flag(eB)}</span></div></div>"""
+                                html_partidos += f"""<div class="mini-card" style="background:#1e2530;"><div style="text-align:center; font-size:0.65em; color:#aaa; margin-bottom:4px;">🕒 {fecha} - Gr. {g}</div><div style="display:flex; justify-content:space-between; align-items:center;"><span style="color:{cA}; font-weight:{bA}; width:40%; text-align:right; font-size:0.9em;">{flag(eA)} {eA}</span> <span style="color:#aaa; font-weight:bold; font-size:0.9em;">vs</span> <span style="color:{cB}; font-weight:{bB}; width:40%; text-align:left; font-size:0.9em;">{eB} {flag(eB)}</span></div></div>"""
                 
                 for m_id, p in resultados_elim.items():
                     eA, eB = p['equipo_A'], p['equipo_B']
@@ -410,7 +405,7 @@ if menu == "📊 Clasificación General":
                         cA, bA = ("#FFD700", "bold") if eA in row["Equipos"] else ("#aaa", "normal")
                         cB, bB = ("#FFD700", "bold") if eB in row["Equipos"] else ("#aaa", "normal")
                         rex = f"<br><span style='font-size:0.7em; color:#aaa; font-weight:normal;'>{p['resolucion']}</span>" if p['resolucion'] != "90 min" else ""
-                        html_partidos += f"""<div class="mini-card"><div style="text-align:center; font-size:0.65em; color:#aaa; margin-bottom:4px;">🕒 {fecha} - {m_id}</div><div style="display:flex; justify-content:space-between; align-items:center;"><span style="color:{cA}; font-weight:{bA}; width:40%; text-align:right; font-size:0.9em;">{flag(eA)} {eA}</span> <span style="background:#252d3a; border: 1px solid #444; padding:2px 8px; border-radius:4px; color:white; font-weight:bold; text-align:center; line-height:1.2; font-size:0.9em;">{p['goles_A']} - {p['goles_B']}{rex}</span> <span style="color:{cB}; font-weight:{bB}; width:40%; text-align:left; font-size:0.9em;">{eB} {flag(eB)}</span></div></div>"""
+                        html_partidos += f"""<div class="mini-card" style="background:#1e2530;"><div style="text-align:center; font-size:0.65em; color:#aaa; margin-bottom:4px;">🕒 {fecha} - {m_id}</div><div style="display:flex; justify-content:space-between; align-items:center;"><span style="color:{cA}; font-weight:{bA}; width:40%; text-align:right; font-size:0.9em;">{flag(eA)} {eA}</span> <span style="background:#252d3a; border: 1px solid #444; padding:2px 8px; border-radius:4px; color:white; font-weight:bold; text-align:center; line-height:1.2; font-size:0.9em;">{p['goles_A']} - {p['goles_B']}{rex}</span> <span style="color:{cB}; font-weight:{bB}; width:40%; text-align:left; font-size:0.9em;">{eB} {flag(eB)}</span></div></div>"""
                 
                 if html_partidos == "": st.caption("No hay partidos de estas selecciones.")
                 else: st.markdown(html_partidos, unsafe_allow_html=True)
@@ -493,6 +488,60 @@ elif menu == "⚽ Cuadro Eliminatorias":
     
     st.markdown("<h3 style='color:#FFD700; margin-top:20px;'>🏆 LA GRAN FINAL</h3>", unsafe_allow_html=True)
     mostrar_cruce("M104 (FINAL)", qu_gan("M101"), qu_gan("M102"))
+
+
+# ══════════════════════════════════════════
+# NUEVO: REGLAMENTO
+# ══════════════════════════════════════════
+elif menu == "📖 Sistema de Puntuación":
+    st.markdown('<div class="titulo-principal">📖 Reglamento</div>', unsafe_allow_html=True)
+
+    st.markdown("""
+    <div class="card">
+        <h3 style='color:#FFD700; margin-top:0;'>📌 Fase de Grupos</h3>
+        <ul style='color:#ccc; font-size:1.1em; line-height:1.6;'>
+            <li><b>Victoria:</b> +3 puntos</li>
+            <li><b>Empate:</b> +1 punto</li>
+            <li><b>Goleada a favor (ganar de 3 o más goles):</b> +1 punto extra</li>
+            <li><b>Goleada en contra (perder de 3 o más goles):</b> -1 punto</li>
+        </ul>
+        <h4 style='color:white; margin-top:10px;'>Bono por clasificación a 1/16:</h4>
+        <ul style='color:#ccc; font-size:1.1em; line-height:1.6;'>
+            <li><b>1º de Grupo:</b> +3 puntos</li>
+            <li><b>2º de Grupo:</b> +2 puntos</li>
+            <li><b>Mejores 3º de Grupo:</b> +1 punto</li>
+            <li><b>Último de Grupo (4º):</b> -1 punto</li>
+        </ul>
+    </div>
+    
+    <div class="card">
+        <h3 style='color:#add8e6; margin-top:0;'>⚔️ Eliminatorias (1/16 a Semis)</h3>
+        <ul style='color:#ccc; font-size:1.1em; line-height:1.6;'>
+            <li><b>Victoria en 90 min:</b> +3 puntos</li>
+            <li><b>Victoria en Prórroga:</b> +2 puntos</li>
+            <li><b>Llegar a Penaltis:</b> +1 punto (para AMBOS equipos)</li>
+            <li><b>Goleadas:</b> +1 pt a favor / -1 pt en contra</li>
+        </ul>
+    </div>
+    
+    <div class="card">
+        <h3 style='color:#FFD700; margin-top:0;'>🏆 Finales</h3>
+        <ul style='color:#ccc; font-size:1.1em; line-height:1.6;'>
+            <li><b>Campeón del Mundial:</b> +10 puntos de bono</li>
+            <li><b>Subcampeón:</b> +6 puntos de bono</li>
+            <li><i>* Se suman también los puntos de 90min/Prórroga/Penaltis de ese partido.</i></li>
+            <hr style='border-color:#444;'>
+            <li><b>Ganador 3º y 4º puesto:</b> +3 puntos fijos</li>
+        </ul>
+    </div>
+    
+    <div class="card">
+        <h3 style='color:#FFA500; margin-top:0;'>🔥 Bonus Extra</h3>
+        <ul style='color:#ccc; font-size:1.1em; line-height:1.6;'>
+            <li><b>Selección Pichichi:</b> +2 puntos a la selección que más goles meta en total en el torneo.</li>
+        </ul>
+    </div>
+    """, unsafe_allow_html=True)
 
 
 # ══════════════════════════════════════════
