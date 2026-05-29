@@ -138,9 +138,7 @@ if "menu_seleccionado" not in st.session_state: st.session_state.menu_selecciona
 
 if not st.session_state.liga_actual:
     st.markdown('<div class="login-wrapper">', unsafe_allow_html=True)
-    
     st.image("https://fotografias.antena3.com/clipping/cmsimages02/2022/12/19/57017F2A-8327-404D-8997-5C37A44CDC03/messi-replica-iconica-imagen-maradona-copa-mundo_97.jpg?crop=4096,2304,x0,y0&width=1600&height=900&optimize=low&format=webply", use_container_width=True)
-    
     st.markdown('<div class="titulo-landing">⚽ Porra Mundial 2026</div>', unsafe_allow_html=True)
     st.markdown('<div class="subtitulo">USA · CANADA · MEXICO</div>', unsafe_allow_html=True)
     
@@ -199,6 +197,10 @@ resultados_elim = cargar_resultados_elim()
 pichichi = cargar_pichichi()
 goleadores_reales = cargar_pichichis_reales()
 
+# NUEVO: Función global para evitar el NameError en la vista Admin
+def qu_gan(m_id, perdedor=False):
+    return resultados_elim[m_id]['perdedor' if perdedor else 'ganador'] if m_id in resultados_elim else "❓"
+
 def obtener_tabla_grupos():
     tabla = []
     for g, eqs in GRUPOS.items():
@@ -231,7 +233,9 @@ pos_grupos = obtener_clasificados(df_tabla)
 
 def calcular_puntos(df):
     pt={e:0 for e in VALOR_EQUIPOS.keys()}
-    det={e:{"Gr(Partidos)":0,"Gr(Goles)":0,"Gr(Bono)":0,"Eliminatorias":0,"Pichichi":0} for e in VALOR_EQUIPOS.keys()}
+    # NUEVO: Log_Elim para registrar de dónde salen los puntos de eliminatorias
+    det={e:{"Gr(Partidos)":0,"Gr(Goles)":0,"Gr(Bono)":0,"Eliminatorias":0,"Pichichi":0, "Log_Elim":[]} for e in VALOR_EQUIPOS.keys()}
+    
     for p in resultados_grupos.values():
         eA,eB=p['equipo_A'],p['equipo_B']; dif=p['goles_A']-p['goles_B']
         if dif>=3: det[eA]["Gr(Goles)"]+=1; det[eB]["Gr(Goles)"]-=1
@@ -239,6 +243,7 @@ def calcular_puntos(df):
         if dif>0: det[eA]["Gr(Partidos)"]+=3
         elif dif<0: det[eB]["Gr(Partidos)"]+=3
         else: det[eA]["Gr(Partidos)"]+=1; det[eB]["Gr(Partidos)"]+=1
+        
     ter_b=[]
     for g in GRUPOS.keys():
         part = [p for p in resultados_grupos.values() if p['equipo_A'] in GRUPOS[g]]
@@ -252,21 +257,54 @@ def calcular_puntos(df):
     for m_id,p in resultados_elim.items():
         eA,eB,res,gan=p['equipo_A'],p['equipo_B'],p['resolucion'],p['ganador']
         dif=p['goles_A']-p['goles_B']
-        if m_id=="M103 (3º y 4º)": det[gan]["Eliminatorias"]+=3; continue
-        if dif>=3: det[eA]["Eliminatorias"]+=1; det[eB]["Eliminatorias"]-=1
-        elif dif<=-3: det[eB]["Eliminatorias"]+=1; det[eA]["Eliminatorias"]-=1
+        
+        # Determinar la fase para el log visual
+        if "103" in m_id: fase = "3ºy4º"
+        elif "104" in m_id: fase = "Final"
+        else:
+            num = int(m_id.split(' ')[0].replace("M", ""))
+            if num <= 88: fase = "1/16"
+            elif num <= 96: fase = "Oct"
+            elif num <= 100: fase = "Cua"
+            elif num <= 102: fase = "Sem"
+            else: fase = "Elim"
+
+        if m_id=="M103 (3º y 4º)": 
+            det[gan]["Eliminatorias"]+=3
+            det[gan]["Log_Elim"].append(f"{fase}: +3")
+            continue
+            
+        pA = 0; pB = 0
+        if dif>=3: pA+=1; pB-=1
+        elif dif<=-3: pB+=1; pA-=1
+        
         if res=="90 min":
-            if dif>0: det[eA]["Eliminatorias"]+=4
-            elif dif<0: det[eB]["Eliminatorias"]+=4
+            if dif>0: pA+=4
+            elif dif<0: pB+=4
         elif res=="Prórroga":
-            if dif>0: det[eA]["Eliminatorias"]+=3
-            elif dif<0: det[eB]["Eliminatorias"]+=3
+            if dif>0: pA+=3
+            elif dif<0: pB+=3
         elif res=="Penaltis":
-            det[eA]["Eliminatorias"]+=1; det[eB]["Eliminatorias"]+=1; det[gan]["Eliminatorias"]+=1
-        if m_id=="M104 (FINAL)": det[gan]["Eliminatorias"]+=10; det[eB if gan==eA else eA]["Eliminatorias"]+=6
+            pA+=1; pB+=1
+            if gan==eA: pA+=1
+            else: pB+=1
+            
+        if m_id=="M104 (FINAL)":
+            if gan==eA: pA+=10; pB+=6
+            else: pB+=10; pA+=6
+            
+        if pA != 0:
+            det[eA]["Eliminatorias"]+=pA
+            det[eA]["Log_Elim"].append(f"{fase}: {pA if pA<0 else '+'+str(pA)}")
+        if pB != 0:
+            det[eB]["Eliminatorias"]+=pB
+            det[eB]["Log_Elim"].append(f"{fase}: {pB if pB<0 else '+'+str(pB)}")
             
     if pichichi: det[pichichi]["Pichichi"]+=2
-    for eq in VALOR_EQUIPOS.keys(): pt[eq] = sum(det[eq].values())
+    
+    # Sumar explícitamente para ignorar el Log_Elim
+    for eq in VALOR_EQUIPOS.keys(): 
+        pt[eq] = det[eq]["Gr(Partidos)"] + det[eq]["Gr(Goles)"] + det[eq]["Gr(Bono)"] + det[eq]["Eliminatorias"] + det[eq]["Pichichi"]
     return pt, det
 
 pts_globales, detalles_globales = calcular_puntos(df_tabla)
@@ -330,8 +368,13 @@ if menu == "📊 Clasificación General":
                     if det['Gr(Partidos)'] != 0: desglose.append(f"Grp: {det['Gr(Partidos)']}")
                     if det['Gr(Goles)'] != 0: desglose.append(f"Gol: {det['Gr(Goles)']}")
                     if det['Gr(Bono)'] != 0: desglose.append(f"Bon: {det['Gr(Bono)']}")
-                    if det['Eliminatorias'] != 0: desglose.append(f"Elim: {det['Eliminatorias']}")
                     if det['Pichichi'] != 0: desglose.append(f"Pich: {det['Pichichi']}")
+                    
+                    # NUEVO: Mostrar el origen de los puntos de Eliminatorias
+                    if det['Eliminatorias'] != 0: 
+                        log_str = " ".join(det["Log_Elim"])
+                        desglose.append(f"Elim: {det['Eliminatorias']} ({log_str})")
+                        
                     str_desglose = " · ".join(desglose) if desglose else "Sin puntos"
                     
                     st.markdown(f"""
@@ -413,7 +456,6 @@ elif menu == "📅 Resultados Partidos":
 
 elif menu == "⚽ Cuadro Eliminatorias":
     st.markdown('<div class="titulo-principal">⚽ Cuadro Eliminatorias</div>', unsafe_allow_html=True)
-    def qu_gan(m_id, perdedor=False): return resultados_elim[m_id]['perdedor' if perdedor else 'ganador'] if m_id in resultados_elim else f"❓"
     def mostrar_cruce(m_id, eA, eB):
         d = resultados_elim.get(m_id); fA, fB = (flag(eA) if eA in VALOR_EQUIPOS else "❓"), (flag(eB) if eB in VALOR_EQUIPOS else "❓")
         if d: st.markdown(f"""<div class="card" style="padding:12px"><div style="display:flex; justify-content:space-between; font-size:0.75em;color:#aaa;margin-bottom:4px"><span>{m_id}</span> <span>🕒 {FECHAS_ELIM.get(m_id, "")}</span></div><div style="display:flex;justify-content:space-between;align-items:center"><span style="{'font-weight:900;color:#FFD700' if d['ganador']==eA else 'color:#aaa'}">{fA} {eA}</span><span class="resultado-badge">{d['goles_A']}-{d['goles_B']}</span><span style="{'font-weight:900;color:#FFD700' if d['ganador']==eB else 'color:#aaa'}">{eB} {fB}</span></div><div style="text-align:center;margin-top:6px;font-size:0.8em;color:#aaa">{d['resolucion']} · 🏆 <b style="color:#FFD700">{d['ganador']}</b></div></div>""", unsafe_allow_html=True)
