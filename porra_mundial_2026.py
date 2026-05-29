@@ -138,7 +138,6 @@ if "menu_seleccionado" not in st.session_state: st.session_state.menu_selecciona
 
 if not st.session_state.liga_actual:
     st.markdown('<div class="login-wrapper">', unsafe_allow_html=True)
-    
     st.image("https://fotografias.antena3.com/clipping/cmsimages02/2022/12/19/57017F2A-8327-404D-8997-5C37A44CDC03/messi-replica-iconica-imagen-maradona-copa-mundo_97.jpg?crop=4096,2304,x0,y0&width=1600&height=900&optimize=low&format=webply", use_container_width=True)
     st.markdown('<div class="titulo-landing">⚽ Porra Mundial 2026</div>', unsafe_allow_html=True)
     st.markdown('<div class="subtitulo">USA · CANADA · MEXICO</div>', unsafe_allow_html=True)
@@ -198,7 +197,6 @@ resultados_elim = cargar_resultados_elim()
 pichichi = cargar_pichichi()
 goleadores_reales = cargar_pichichis_reales()
 
-# Función global para evitar el NameError en la vista Admin
 def qu_gan(m_id, perdedor=False):
     return resultados_elim[m_id]['perdedor' if perdedor else 'ganador'] if m_id in resultados_elim else "❓"
 
@@ -258,9 +256,9 @@ def calcular_puntos(df):
         eA,eB,res,gan=p['equipo_A'],p['equipo_B'],p['resolucion'],p['ganador']
         dif=p['goles_A']-p['goles_B']
         
-        # Determinar la fase para el log visual
+        # Auditoría visual de los puntos en eliminatorias
         if "103" in m_id: fase = "3ºy4º"
-        elif "104" in m_id: fase = "Final"
+        elif "104" in m_id: fase = "Fin"
         else:
             num = int(m_id.split(' ')[0].replace("M", ""))
             if num <= 88: fase = "1/16"
@@ -278,14 +276,14 @@ def calcular_puntos(df):
         if dif>=3: pA+=1; pB-=1
         elif dif<=-3: pB+=1; pA-=1
         
-        # NUEVAS REGLAS DE PUNTOS FASE FINAL
         if res=="90 min":
+            if dif>0: pA+=4
+            elif dif<0: pB+=4
+        elif res=="Prórroga":
             if dif>0: pA+=3
             elif dif<0: pB+=3
-        elif res=="Prórroga":
-            if dif>0: pA+=2
-            elif dif<0: pB+=2
         elif res=="Penaltis":
+            pA+=1; pB+=1
             if gan==eA: pA+=1
             else: pB+=1
             
@@ -369,7 +367,6 @@ if menu == "📊 Clasificación General":
                     if det['Gr(Bono)'] != 0: desglose.append(f"Bon: {det['Gr(Bono)']}")
                     if det['Pichichi'] != 0: desglose.append(f"Pich: {det['Pichichi']}")
                     
-                    # Mostrar el origen de los puntos de Eliminatorias
                     if det['Eliminatorias'] != 0: 
                         log_str = " ".join(det["Log_Elim"])
                         desglose.append(f"Elim: {det['Eliminatorias']} ({log_str})")
@@ -531,14 +528,23 @@ elif menu == "⚔️ Resultados Elim.":
                 if not re or re.get("goles_A")!=gA_i or re.get("goles_B")!=gB_i or re.get("resolucion")!=res or re.get("ganador")!=gan: guardar_resultado_elim(m_id,eA,eB,gA_i,gB_i,res,gan,perd)
             elif re.get("goles_A","")!="" and gA=="" and gB=="": borrar_resultado_elim(m_id)
             
-    c16=st.columns(4); [renderizar(m_id,pos_grupos.get(c1,c1),pos_grupos.get(c2,c2),c16[i%4]) for i,(m_id,(c1,c2)) in enumerate(EMPAREJAMIENTOS_16VOS.items())]
-    c8=st.columns(4); [renderizar(m_id,qu_gan(m1),qu_gan(m2),c8[i%4]) for i,(m_id,(m1,m2)) in enumerate(CRUCES_OCTAVOS.items())]
-    c4=st.columns(4); [renderizar(m_id,qu_gan(m1),qu_gan(m2),c4[i%4]) for i,(m_id,(m1,m2)) in enumerate(CRUCES_CUARTOS.items())]
-    c2=st.columns(2); [renderizar(m_id,qu_gan(m1),qu_gan(m2),c2[i]) for i,(m_id,(m1,m2)) in enumerate(CRUCES_SEMIS.items())]
-    cf=st.columns(2); [renderizar(m_id,qu_gan(m1.replace("_L",""),perdedor="_L" in m1),qu_gan(m2.replace("_L",""),perdedor="_L" in m2),cf[i]) for i,(m_id,(m1,m2)) in enumerate(CRUCES_FINALES.items())]
+    c16 = st.columns(4)
+    for i, (m_id, (c1, c2)) in enumerate(EMPAREJAMIENTOS_16VOS.items()): renderizar(m_id, pos_grupos.get(c1,c1), pos_grupos.get(c2,c2), c16[i%4])
+    
+    c8 = st.columns(4)
+    for i, (m_id, (m1, m2)) in enumerate(CRUCES_OCTAVOS.items()): renderizar(m_id, qu_gan(m1), qu_gan(m2), c8[i%4])
+    
+    c4 = st.columns(4)
+    for i, (m_id, (m1, m2)) in enumerate(CRUCES_CUARTOS.items()): renderizar(m_id, qu_gan(m1), qu_gan(m2), c4[i%4])
+    
+    c2 = st.columns(2)
+    for i, (m_id, (m1, m2)) in enumerate(CRUCES_SEMIS.items()): renderizar(m_id, qu_gan(m1), qu_gan(m2), c2[i])
+    
+    cf = st.columns(2)
+    for i, (m_id, (m1, m2)) in enumerate(CRUCES_FINALES.items()): renderizar(m_id, qu_gan(m1.replace("_L",""), perdedor="_L" in m1), qu_gan(m2.replace("_L",""), perdedor="_L" in m2), cf[i])
 
 elif menu == "🥇 Pichichi Equipo":
-    sel = st.selectbox("Selección Máxima Goleadora", ["Ninguno aún..."] + list(VALOR_EQUIPOS.keys()), index=(["Ninguno aún..."] + list(VALOR_EQUIPOS.keys())).index(pichichi) if pichichi else 0)
+    sel = st.selectbox("Selección Máxima Goleadora (Da puntos extra)", ["Ninguno aún..."] + list(VALOR_EQUIPOS.keys()), index=(["Ninguno aún..."] + list(VALOR_EQUIPOS.keys())).index(pichichi) if pichichi else 0)
     if st.button("💾 Guardar",use_container_width=True): guardar_pichichi(sel if sel!="Ninguno aún..." else None); st.success("Guardado")
 
 elif menu == "🎯 Pichichis Jugadores":
