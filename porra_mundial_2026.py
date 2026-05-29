@@ -8,6 +8,7 @@ st.set_page_config(page_title="Porra Mundial 2026", layout="wide", initial_sideb
 # CSS personalizado global
 st.markdown("""
 <style>
+    /* Fulminar cabeceras y espacios vacíos superiores */
     [data-testid="stHeader"], [data-testid="stSidebar"], footer { display: none !important; }
     [data-testid="block-container"] { max-width: 650px; margin: 0 auto; padding-top: 0 !important; padding-bottom: 3rem; }
     
@@ -125,7 +126,6 @@ def borrar_goleador_real(jug):
     try: get_supabase().table("pichichis_reales").delete().eq("jugador", jug).execute(); cargar_pichichis_reales.clear()
     except: pass
 
-# --- NUEVO: Función segura de extracción de ganador para evitar NameErrors ---
 def qu_gan(m_id, perdedor=False):
     return resultados_elim[m_id]['perdedor' if perdedor else 'ganador'] if m_id in resultados_elim else "❓"
 
@@ -138,7 +138,6 @@ if "admin" not in st.session_state: st.session_state.admin = False
 if "menu_seleccionado" not in st.session_state: st.session_state.menu_seleccionado = "📊 Clasificación General"
 
 if not st.session_state.liga_actual:
-    
     st.image("https://fotografias.antena3.com/clipping/cmsimages02/2022/12/19/57017F2A-8327-404D-8997-5C37A44CDC03/messi-replica-iconica-imagen-maradona-copa-mundo_97.jpg?crop=4096,2304,x0,y0&width=1600&height=900&optimize=low&format=webply", use_container_width=True)
     st.markdown('<div class="titulo-landing">⚽ Porra Mundial 2026</div>', unsafe_allow_html=True)
     st.markdown('<div class="subtitulo">USA · CANADA · MEXICO</div>', unsafe_allow_html=True)
@@ -231,7 +230,6 @@ def calcular_puntos(df):
     pt={e:0 for e in VALOR_EQUIPOS.keys()}
     det={e:{"Gr(Partidos)":0,"Gr(Goles)":0,"Gr(Bono)":0,"Eliminatorias":0,"Pichichi":0, "Log_Elim":[]} for e in VALOR_EQUIPOS.keys()}
     
-    # 1. PUNTOS DE GRUPOS
     for p in resultados_grupos.values():
         eA,eB=p['equipo_A'],p['equipo_B']; dif=p['goles_A']-p['goles_B']
         if dif>=3: det[eA]["Gr(Goles)"]+=1; det[eB]["Gr(Goles)"]-=1
@@ -250,12 +248,10 @@ def calcular_puntos(df):
     ter_b=sorted(ter_b,key=lambda x:(x['Pts'],x['Dif'],x['GF']),reverse=True)
     for i in range(min(8,len(ter_b))): det[ter_b[i]['Equipo']]["Gr(Bono)"]+=1
     
-    # 2. PUNTOS DE ELIMINATORIAS (CON FÓRMULA ORIGINAL SANEADA Y TRACKING)
     for m_id,p in resultados_elim.items():
         eA,eB,res,gan=p['equipo_A'],p['equipo_B'],p['resolucion'],p['ganador']
         dif=p['goles_A']-p['goles_B']
         
-        # Etiqueta visual
         if "103" in m_id: fase = "3ºy4º"
         elif "104" in m_id: fase = "Fin"
         else:
@@ -269,50 +265,44 @@ def calcular_puntos(df):
         pA_prev = det[eA]["Eliminatorias"] if eA in det else 0
         pB_prev = det[eB]["Eliminatorias"] if eB in det else 0
         gan_prev = det[gan]["Eliminatorias"] if gan in det else 0
-
-        # Suma exacta original
-        if m_id=="M103 (3º y 4º)": 
-            if gan in det: det[gan]["Eliminatorias"]+=3
-        else:
-            if dif>=3: 
-                if eA in det: det[eA]["Eliminatorias"]+=1
-                if eB in det: det[eB]["Eliminatorias"]-=1
-            elif dif<=-3: 
-                if eB in det: det[eB]["Eliminatorias"]+=1
-                if eA in det: det[eA]["Eliminatorias"]-=1
-                
-            if res=="90 min":
-                if dif>0 and eA in det: det[eA]["Eliminatorias"]+=4
-                elif dif<0 and eB in det: det[eB]["Eliminatorias"]+=4
-            elif res=="Prórroga":
-                if dif>0 and eA in det: det[eA]["Eliminatorias"]+=3
-                elif dif<0 and eB in det: det[eB]["Eliminatorias"]+=3
-            elif res=="Penaltis":
-                if eA in det: det[eA]["Eliminatorias"]+=1
-                if eB in det: det[eB]["Eliminatorias"]+=1
-                if gan in det: det[gan]["Eliminatorias"]+=1
-                
-            if m_id=="M104 (FINAL)":
-                if gan in det: det[gan]["Eliminatorias"]+=10
-                perd = eB if gan==eA else eA
-                if perd in det: det[perd]["Eliminatorias"]+=6
-
-        # Calcular e inyectar historial para el popover
+            
+        pA = 0; pB = 0
+        
+        # Puntos por Goleada (diferencia de 3)
+        if dif>=3: pA+=1; pB-=1
+        elif dif<=-3: pB+=1; pA-=1
+        
+        # EL REGLAMENTO OFICIAL DE ELIMINATORIAS (3, 2, 1)
+        if res=="90 min":
+            if dif>0: pA+=3
+            elif dif<0: pB+=3
+        elif res=="Prórroga":
+            if dif>0: pA+=2
+            elif dif<0: pB+=2
+        elif res=="Penaltis":
+            if gan==eA: pA+=1
+            else: pB+=1
+            
+        # Puntos de Bonificación de la Gran Final
         if m_id=="M103 (3º y 4º)":
-            if gan in det:
-                diff = det[gan]["Eliminatorias"] - gan_prev
-                if diff != 0: det[gan]["Log_Elim"].append(f"{fase}: +{diff}")
-        else:
-            if eA in det:
-                diffA = det[eA]["Eliminatorias"] - pA_prev
-                if diffA != 0: det[eA]["Log_Elim"].append(f"{fase}: +{diffA}" if diffA > 0 else f"{fase}: {diffA}")
-            if eB in det:
-                diffB = det[eB]["Eliminatorias"] - pB_prev
-                if diffB != 0: det[eB]["Log_Elim"].append(f"{fase}: +{diffB}" if diffB > 0 else f"{fase}: {diffB}")
+            if gan==eA: pA+=3
+            else: pB+=3
+        if m_id=="M104 (FINAL)":
+            if gan==eA: pA+=10; pB+=6
+            else: pB+=10; pA+=6
+            
+        # Inyectar el historial en la caja fuerte de cada jugador
+        if eA in det:
+            det[eA]["Eliminatorias"]+=pA
+            diffA = det[eA]["Eliminatorias"] - pA_prev
+            if diffA != 0: det[eA]["Log_Elim"].append(f"{fase}: +{diffA}" if diffA > 0 else f"{fase}: {diffA}")
+        if eB in det:
+            det[eB]["Eliminatorias"]+=pB
+            diffB = det[eB]["Eliminatorias"] - pB_prev
+            if diffB != 0: det[eB]["Log_Elim"].append(f"{fase}: +{diffB}" if diffB > 0 else f"{fase}: {diffB}")
             
     if pichichi: det[pichichi]["Pichichi"]+=2
     
-    # Total de Puntos Globales
     for eq in VALOR_EQUIPOS.keys(): 
         pt[eq] = det[eq]["Gr(Partidos)"] + det[eq]["Gr(Goles)"] + det[eq]["Gr(Bono)"] + det[eq]["Eliminatorias"] + det[eq]["Pichichi"]
     return pt, det
@@ -363,7 +353,8 @@ if menu == "📊 Clasificación General":
     
     if not participantes: st.warning("Aún no hay participantes en esta liga.")
     else:
-        st.caption("👇 Toca en la fila de cualquier jugador para ver sus equipos y partidos al instante.")
+        st.caption("👇 Toca en la fila de cualquier jugador para desplegar sus equipos y partidos.")
+        
         for i, row in enumerate(clasificacion_ordenada):
             med = ["🥇","🥈","🥉"][i] if i < 3 else f"#{i+1}"
             
@@ -387,7 +378,7 @@ if menu == "📊 Clasificación General":
                     str_desglose = " · ".join(desglose) if desglose else "Sin puntos"
                     
                     st.markdown(f"""
-                    <div class="mini-card" style="display:flex; justify-content:space-between; align-items:center;">
+                    <div class="mini-card" style="display:flex; justify-content:space-between; align-items:center; background:#1e2530;">
                         <div><span style="font-size:1.1em; color:white;">{flag(eq)} <b>{eq}</b></span><br><span style="font-size:0.8em; color:#aaa;">{str_desglose}</span></div>
                         <div style="background-color:#FFD700; color:#000; padding:2px 8px; border-radius:6px; font-weight:bold; font-size:1.1em;">{pts_globales[eq]}</div>
                     </div>""", unsafe_allow_html=True)
@@ -402,9 +393,9 @@ if menu == "📊 Clasificación General":
                             cB, bB = ("#FFD700", "bold") if eB in row["Equipos"] else ("#aaa", "normal")
                             if k in resultados_grupos:
                                 p = resultados_grupos[k]
-                                html_partidos += f"""<div class="mini-card"><div style="text-align:center; font-size:0.65em; color:#aaa; margin-bottom:4px;">🕒 {fecha} - Gr. {g}</div><div style="display:flex; justify-content:space-between; align-items:center;"><span style="color:{cA}; font-weight:{bA}; width:40%; text-align:right; font-size:0.9em;">{flag(eA)} {eA}</span> <span style="background:#252d3a; border: 1px solid #444; padding:2px 8px; border-radius:4px; color:white; font-weight:bold; font-size:0.9em;">{p['goles_A']} - {p['goles_B']}</span> <span style="color:{cB}; font-weight:{bB}; width:40%; text-align:left; font-size:0.9em;">{eB} {flag(eB)}</span></div></div>"""
+                                html_partidos += f"""<div class="mini-card" style="background:#1e2530;"><div style="text-align:center; font-size:0.65em; color:#aaa; margin-bottom:4px;">🕒 {fecha} - Gr. {g}</div><div style="display:flex; justify-content:space-between; align-items:center;"><span style="color:{cA}; font-weight:{bA}; width:40%; text-align:right; font-size:0.9em;">{flag(eA)} {eA}</span> <span style="background:#252d3a; border: 1px solid #444; padding:2px 8px; border-radius:4px; color:white; font-weight:bold; font-size:0.9em;">{p['goles_A']} - {p['goles_B']}</span> <span style="color:{cB}; font-weight:{bB}; width:40%; text-align:left; font-size:0.9em;">{eB} {flag(eB)}</span></div></div>"""
                             else:
-                                html_partidos += f"""<div class="mini-card"><div style="text-align:center; font-size:0.65em; color:#aaa; margin-bottom:4px;">🕒 {fecha} - Gr. {g}</div><div style="display:flex; justify-content:space-between; align-items:center;"><span style="color:{cA}; font-weight:{bA}; width:40%; text-align:right; font-size:0.9em;">{flag(eA)} {eA}</span> <span style="color:#aaa; font-weight:bold; font-size:0.9em;">vs</span> <span style="color:{cB}; font-weight:{bB}; width:40%; text-align:left; font-size:0.9em;">{eB} {flag(eB)}</span></div></div>"""
+                                html_partidos += f"""<div class="mini-card" style="background:#1e2530;"><div style="text-align:center; font-size:0.65em; color:#aaa; margin-bottom:4px;">🕒 {fecha} - Gr. {g}</div><div style="display:flex; justify-content:space-between; align-items:center;"><span style="color:{cA}; font-weight:{bA}; width:40%; text-align:right; font-size:0.9em;">{flag(eA)} {eA}</span> <span style="color:#aaa; font-weight:bold; font-size:0.9em;">vs</span> <span style="color:{cB}; font-weight:{bB}; width:40%; text-align:left; font-size:0.9em;">{eB} {flag(eB)}</span></div></div>"""
                 
                 for m_id, p in resultados_elim.items():
                     eA, eB = p['equipo_A'], p['equipo_B']
@@ -413,7 +404,7 @@ if menu == "📊 Clasificación General":
                         cA, bA = ("#FFD700", "bold") if eA in row["Equipos"] else ("#aaa", "normal")
                         cB, bB = ("#FFD700", "bold") if eB in row["Equipos"] else ("#aaa", "normal")
                         rex = f"<br><span style='font-size:0.7em; color:#aaa; font-weight:normal;'>{p['resolucion']}</span>" if p['resolucion'] != "90 min" else ""
-                        html_partidos += f"""<div class="mini-card"><div style="text-align:center; font-size:0.65em; color:#aaa; margin-bottom:4px;">🕒 {fecha} - {m_id}</div><div style="display:flex; justify-content:space-between; align-items:center;"><span style="color:{cA}; font-weight:{bA}; width:40%; text-align:right; font-size:0.9em;">{flag(eA)} {eA}</span> <span style="background:#252d3a; border: 1px solid #444; padding:2px 8px; border-radius:4px; color:white; font-weight:bold; text-align:center; line-height:1.2; font-size:0.9em;">{p['goles_A']} - {p['goles_B']}{rex}</span> <span style="color:{cB}; font-weight:{bB}; width:40%; text-align:left; font-size:0.9em;">{eB} {flag(eB)}</span></div></div>"""
+                        html_partidos += f"""<div class="mini-card" style="background:#1e2530;"><div style="text-align:center; font-size:0.65em; color:#aaa; margin-bottom:4px;">🕒 {fecha} - {m_id}</div><div style="display:flex; justify-content:space-between; align-items:center;"><span style="color:{cA}; font-weight:{bA}; width:40%; text-align:right; font-size:0.9em;">{flag(eA)} {eA}</span> <span style="background:#252d3a; border: 1px solid #444; padding:2px 8px; border-radius:4px; color:white; font-weight:bold; text-align:center; line-height:1.2; font-size:0.9em;">{p['goles_A']} - {p['goles_B']}{rex}</span> <span style="color:{cB}; font-weight:{bB}; width:40%; text-align:left; font-size:0.9em;">{eB} {flag(eB)}</span></div></div>"""
                 
                 if html_partidos == "": st.caption("No hay partidos de estas selecciones.")
                 else: st.markdown(html_partidos, unsafe_allow_html=True)
@@ -491,7 +482,7 @@ elif menu == "⚽ Cuadro Eliminatorias":
     for i,(m_id,(m1,m2)) in enumerate(CRUCES_SEMIS.items()):
         with c2[i]: mostrar_cruce(m_id, qu_gan(m1), qu_gan(m2))
         
-    # NUEVO: Títulos separados para Tercer Puesto y Final
+    # Títulos separados para Tercer Puesto y Final
     st.markdown("<h3 style='color:#cd7f32; margin-top:20px;'>🥉 3º y 4º Puesto</h3>", unsafe_allow_html=True)
     mostrar_cruce("M103 (3º y 4º)", qu_gan("M101", perdedor=True), qu_gan("M102", perdedor=True))
     
