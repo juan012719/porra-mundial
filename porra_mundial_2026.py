@@ -8,37 +8,27 @@ st.set_page_config(page_title="Porra Mundial 2026", layout="wide", initial_sideb
 # CSS personalizado global
 st.markdown("""
 <style>
-    /* Fulminar cabeceras y espacios vacíos superiores */
     [data-testid="stHeader"], [data-testid="stSidebar"], footer { display: none !important; }
     [data-testid="block-container"] { max-width: 650px; margin: 0 auto; padding-top: 0 !important; padding-bottom: 3rem; }
-    
     .stApp, .stMarkdown, p, label { color: #f0f2f6 !important; }
     .main { background-color: #0e1117; }
     .stApp { background: linear-gradient(135deg, #0e1117 0%, #1a1f2e 100%); }
     
-    /* Botones dorados y blindados */
-    button[kind="secondary"], button[kind="primary"], div.stButton > button {
-        background-color: #FFD700 !important; border: 2px solid #B8860B !important; border-radius: 8px !important; margin-bottom: 5px;
-    }
-    button[kind="secondary"] p, button[kind="primary"] p, div.stButton > button p {
-        color: #000000 !important; font-weight: 900 !important; font-size: 1.1em !important; margin: 0 !important; padding: 0 !important;
-    }
+    button[kind="secondary"], button[kind="primary"], div.stButton > button { background-color: #FFD700 !important; border: 2px solid #B8860B !important; border-radius: 8px !important; margin-bottom: 5px; }
+    button[kind="secondary"] p, button[kind="primary"] p, div.stButton > button p { color: #000000 !important; font-weight: 900 !important; font-size: 1.1em !important; margin: 0 !important; padding: 0 !important; }
     button:hover { background-color: #FFA500 !important; }
     
-    /* Expanders Nativos para la Clasificación (INAMOVIBLES Y PERFECTOS) */
     [data-testid="stExpander"] { background-color: #1e2530; border: 1px solid #333; border-radius: 8px; margin-bottom: 10px; }
     [data-testid="stExpander"] summary { background-color: transparent !important; padding: 15px !important; }
     [data-testid="stExpander"] summary p { font-size: 1.2em; font-weight: bold; color: white; margin: 0; }
     [data-testid="stExpander"] summary:hover { background-color: rgba(255, 215, 0, 0.1) !important; }
     
-    /* Títulos inquebrantables */
     .titulo-principal { text-align: center; font-size: clamp(1.4em, 6vw, 2.5em); font-weight: 900; background: linear-gradient(90deg, #FFD700, #FF6B35, #FFD700); -webkit-background-clip: text; -webkit-text-fill-color: transparent; padding: 15px 0 5px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .titulo-landing { text-align: center; font-size: clamp(2.2em, 8vw, 4.5em); font-weight: 900; background: linear-gradient(90deg, #FFD700, #FF6B35, #FFD700); -webkit-background-clip: text; -webkit-text-fill-color: transparent; padding: 10px 0 0 0; line-height: 1.1; margin-top: 10px; white-space: nowrap; }
     .subtitulo { text-align: center; color: #aaa !important; font-size: clamp(0.8em, 3vw, 1.2em); margin-bottom: 20px; letter-spacing: 5px; }
     
     .card { background: linear-gradient(135deg, #1e2530, #252d3a); border: 1px solid #2d3748; border-radius: 12px; padding: 20px; margin: 10px 0; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
     .mini-card { background-color: #1a202a; border: 1px solid #333; border-radius: 8px; padding: 12px; margin-bottom: 8px; }
-    
     .login-wrapper { display: flex; flex-direction: column; align-items: center; width: 100%; margin-top: 0; }
 </style>
 """, unsafe_allow_html=True)
@@ -61,15 +51,14 @@ def obtener_fecha_grupo(eA, eB, grupo):
     if eA=="ESPAÑA" and eB=="CABO VERDE": return "15 Jun - 18:00"
     if eA=="ESPAÑA" and eB=="ARABIA SAUDÍ": return "21 Jun - 18:00"
     if eA=="ESPAÑA" and eB=="URUGUAY": return "25 Jun - 22:00"
-    eqs = GRUPOS[grupo]; base = DIAS_INICIO.get(grupo, 11)
-    if (eA, eB) == (eqs[0], eqs[1]): dia=base; hora="21:00"
-    elif (eA, eB) == (eqs[2], eqs[3]): dia=base+1; hora="18:00"
-    elif (eA, eB) == (eqs[0], eqs[2]): dia=base+5; hora="21:00"
-    elif (eA, eB) == (eqs[1], eqs[3]): dia=base+6; hora="18:00"
-    elif (eA, eB) == (eqs[0], eqs[3]): dia=base+9; hora="22:00"
-    else: dia=base+9; hora="18:00"
-    mes = "Jul" if dia > 30 else "Jun"
-    return f"{dia-30 if dia>30 else dia} {mes} - {hora}"
+    eqs, b = GRUPOS[grupo], DIAS_INICIO.get(grupo, 11)
+    if (eA, eB) == (eqs[0], eqs[1]): d, h = b, "21:00"
+    elif (eA, eB) == (eqs[2], eqs[3]): d, h = b+1, "18:00"
+    elif (eA, eB) == (eqs[0], eqs[2]): d, h = b+5, "21:00"
+    elif (eA, eB) == (eqs[1], eqs[3]): d, h = b+6, "18:00"
+    elif (eA, eB) == (eqs[0], eqs[3]): d, h = b+9, "22:00"
+    else: d, h = b+9, "18:00"
+    return f"{d-30 if d>30 else d} {'Jul' if d>30 else 'Jun'} - {h}"
 
 FECHAS_ELIM = {"M73":"28 Jun - 18:00","M74":"28 Jun - 22:00","M75":"29 Jun - 18:00","M76":"29 Jun - 22:00","M77":"30 Jun - 18:00","M78":"30 Jun - 22:00","M79":"1 Jul - 18:00","M80":"1 Jul - 22:00","M81":"2 Jul - 18:00","M82":"2 Jul - 22:00","M83":"3 Jul - 18:00","M84":"3 Jul - 22:00","M85":"4 Jul - 18:00","M86":"4 Jul - 22:00","M87":"5 Jul - 18:00","M88":"5 Jul - 22:00","M89":"6 Jul - 18:00","M90":"6 Jul - 22:00","M91":"7 Jul - 18:00","M92":"7 Jul - 22:00","M93":"8 Jul - 18:00","M94":"8 Jul - 22:00","M95":"9 Jul - 18:00","M96":"9 Jul - 22:00","M97":"11 Jul - 18:00","M98":"11 Jul - 22:00","M99":"12 Jul - 18:00","M100":"12 Jul - 22:00","M101":"14 Jul - 21:00","M102":"15 Jul - 21:00","M103 (3º y 4º)":"18 Jul - 21:00","M104 (FINAL)":"19 Jul - 21:00"}
 
@@ -79,7 +68,7 @@ def get_supabase(): return create_client(st.secrets["SUPABASE_URL"], st.secrets[
 @st.cache_data(ttl=30)
 def cargar_participantes(liga):
     if not liga: return {}
-    sb = get_supabase(); rows = sb.table("participantes").select("*").eq("liga", liga).execute().data
+    rows = get_supabase().table("participantes").select("*").eq("liga", liga).execute().data
     return {r["nombre"]: r["equipos"].split(",") if r["equipos"] else [] for r in rows}
 
 @st.cache_data(ttl=30)
@@ -97,33 +86,65 @@ def guardar_participantes(liga, part_dict):
 
 def guardar_ajuste_puntos(liga, nombre, pts):
     if not liga: return
-    try: get_supabase().table("ajustes_puntos").upsert({"liga": liga, "nombre": nombre, "puntos_extra": pts}).execute(); cargar_ajustes_puntos.clear()
+    try: get_supabase().table("ajustes_puntos").delete().eq("liga", liga).eq("nombre", nombre).execute()
+    except: pass
+    try: get_supabase().table("ajustes_puntos").insert({"liga": liga, "nombre": nombre, "puntos_extra": pts}).execute(); cargar_ajustes_puntos.clear()
     except: pass
 
 @st.cache_data(ttl=30)
-def cargar_resultados_grupos(): return {r["key"]: {"equipo_A":r["equipo_a"],"equipo_B":r["equipo_b"],"goles_A":r["goles_a"],"goles_B":r["goles_b"]} for r in get_supabase().table("resultados_grupos").select("*").execute().data}
+def cargar_resultados_grupos(): 
+    try: return {r["key"]: {"equipo_A":r["equipo_a"],"equipo_B":r["equipo_b"],"goles_A":r["goles_a"],"goles_B":r["goles_b"]} for r in get_supabase().table("resultados_grupos").select("*").execute().data}
+    except: return {}
 
 @st.cache_data(ttl=30)
-def cargar_resultados_elim(): return {r["key"]: {"equipo_A":r["equipo_a"],"equipo_B":r["equipo_b"],"goles_A":r["goles_a"],"goles_B":r["goles_b"],"resolucion":r["resolucion"],"ganador":r["ganador"],"perdedor":r["perdedor"]} for r in get_supabase().table("resultados_elim").select("*").execute().data}
+def cargar_resultados_elim(): 
+    try: return {r["key"]: {"equipo_A":r["equipo_a"],"equipo_B":r["equipo_b"],"goles_A":r["goles_a"],"goles_B":r["goles_b"],"resolucion":r["resolucion"],"ganador":r["ganador"],"perdedor":r["perdedor"]} for r in get_supabase().table("resultados_elim").select("*").execute().data}
+    except: return {}
 
 @st.cache_data(ttl=30)
 def cargar_pichichi():
-    rows = get_supabase().table("pichichi").select("*").execute().data
-    return rows[0]["equipo"] if rows else None
+    try:
+        rows = get_supabase().table("pichichi").select("*").execute().data
+        return rows[0]["equipo"] if rows else None
+    except: return None
 
 @st.cache_data(ttl=30)
 def cargar_pichichis_reales():
     try: return get_supabase().table("pichichis_reales").select("*").order("goles", desc=True).execute().data
     except: return []
 
-def guardar_resultado_grupo(k, eA, eB, gA, gB): get_supabase().table("resultados_grupos").upsert({"key":k,"equipo_a":eA,"equipo_b":eB,"goles_a":gA,"goles_b":gB}).execute(); cargar_resultados_grupos.clear()
-def borrar_resultado_grupo(k): get_supabase().table("resultados_grupos").delete().eq("key",k).execute(); cargar_resultados_grupos.clear()
-def guardar_resultado_elim(m_id, eA, eB, gA, gB, res, gan, perd): get_supabase().table("resultados_elim").upsert({"key":m_id,"equipo_a":eA,"equipo_b":eB,"goles_a":gA,"goles_b":gB,"resolucion":res,"ganador":gan,"perdedor":perd}).execute(); cargar_resultados_elim.clear()
-def borrar_resultado_elim(m_id): get_supabase().table("resultados_elim").delete().eq("key",m_id).execute(); cargar_resultados_elim.clear()
-def guardar_pichichi(eq): sb = get_supabase(); sb.table("pichichi").delete().neq("id",0).execute(); sb.table("pichichi").insert({"equipo":eq}).execute() if eq else None; cargar_pichichi.clear()
-def guardar_goleador_real(jug, eq, gol, pen):
-    try: get_supabase().table("pichichis_reales").upsert({"jugador": jug.title(), "equipo": eq, "goles": gol, "goles_penalti": pen}).execute(); cargar_pichichis_reales.clear()
+def guardar_resultado_grupo(k, eA, eB, gA, gB): 
+    try: sb=get_supabase(); sb.table("resultados_grupos").delete().eq("key",k).execute(); sb.table("resultados_grupos").insert({"key":k,"equipo_a":eA,"equipo_b":eB,"goles_a":gA,"goles_b":gB}).execute(); cargar_resultados_grupos.clear()
     except: pass
+def borrar_resultado_grupo(k): 
+    try: get_supabase().table("resultados_grupos").delete().eq("key",k).execute(); cargar_resultados_grupos.clear()
+    except: pass
+def guardar_resultado_elim(m_id, eA, eB, gA, gB, res, gan, perd): 
+    try: sb=get_supabase(); sb.table("resultados_elim").delete().eq("key",m_id).execute(); sb.table("resultados_elim").insert({"key":m_id,"equipo_a":eA,"equipo_b":eB,"goles_a":gA,"goles_b":gB,"resolucion":res,"ganador":gan,"perdedor":perd}).execute(); cargar_resultados_elim.clear()
+    except: pass
+def borrar_resultado_elim(m_id): 
+    try: get_supabase().table("resultados_elim").delete().eq("key",m_id).execute(); cargar_resultados_elim.clear()
+    except: pass
+
+# --- FUNCIÓN BLINDADA PARA EL PICHICHI EQUIPO ---
+def guardar_pichichi(eq): 
+    try:
+        sb = get_supabase()
+        rows = sb.table("pichichi").select("*").execute().data
+        for r in rows:
+            if "id" in r: sb.table("pichichi").delete().eq("id", r["id"]).execute()
+            elif "equipo" in r: sb.table("pichichi").delete().eq("equipo", r["equipo"]).execute()
+        if eq: sb.table("pichichi").insert({"equipo":eq}).execute()
+        cargar_pichichi.clear()
+    except Exception: pass
+
+def guardar_goleador_real(jug, eq, gol, pen):
+    try: 
+        sb = get_supabase(); sb.table("pichichis_reales").delete().eq("jugador", jug.title()).execute()
+        sb.table("pichichis_reales").insert({"jugador": jug.title(), "equipo": eq, "goles": gol, "goles_penalti": pen}).execute()
+        cargar_pichichis_reales.clear()
+    except: pass
+
 def borrar_goleador_real(jug):
     try: get_supabase().table("pichichis_reales").delete().eq("jugador", jug).execute(); cargar_pichichis_reales.clear()
     except: pass
@@ -153,31 +174,22 @@ if not st.session_state.liga_actual:
     with c2:
         codigo = st.text_input("Código", placeholder="Ejemplo: CUADRILLA...", label_visibility="collapsed").strip().upper()
         st.write("")
-        
         if st.button("🚀 ENTRAR A MI LIGA", use_container_width=True):
             if codigo:
                 if st.session_state.admin: 
-                    st.session_state.liga_actual = codigo
-                    st.rerun()
+                    st.session_state.liga_actual = codigo; st.rerun()
                 else:
                     existe = False
                     try:
                         check = get_supabase().table("participantes").select("nombre").eq("liga", codigo).limit(1).execute()
                         if check.data and len(check.data) > 0: existe = True
                         else: st.error(f"❌ La liga '{codigo}' no existe. Comprueba el código.")
-                    except Exception:
-                        st.error("Hubo un problema de conexión. Inténtalo de nuevo.")
-                    
-                    if existe:
-                        st.session_state.liga_actual = codigo
-                        st.rerun()
-            else:
-                st.error("Escribe un código para entrar.")
+                    except Exception: st.error("Hubo un problema de conexión. Inténtalo de nuevo.")
+                    if existe: st.session_state.liga_actual = codigo; st.rerun()
+            else: st.error("Escribe un código para entrar.")
             
     st.markdown("</div>", unsafe_allow_html=True)
     st.write("")
-    st.write("")
-    
     if not st.session_state.admin:
         with st.expander("⚙️ Acceso Administrador"):
             pwd = st.text_input("Contraseña Admin", type="password")
@@ -234,6 +246,7 @@ def calcular_puntos(df):
     pt={e:0 for e in VALOR_EQUIPOS.keys()}
     det={e:{"Gr(Partidos)":0,"Gr(Goles)":0,"Gr(Bono)":0,"Eliminatorias":0,"Pichichi":0, "Log_Elim":[]} for e in VALOR_EQUIPOS.keys()}
     
+    # 1. PUNTOS DE GRUPOS
     for p in resultados_grupos.values():
         eA,eB=p['equipo_A'],p['equipo_B']; dif=p['goles_A']-p['goles_B']
         if dif>=3: det[eA]["Gr(Goles)"]+=1; det[eB]["Gr(Goles)"]-=1
@@ -242,16 +255,19 @@ def calcular_puntos(df):
         elif dif<0: det[eB]["Gr(Partidos)"]+=3
         else: det[eA]["Gr(Partidos)"]+=1; det[eB]["Gr(Partidos)"]+=1
         
-    ter_b=[]
     for g in GRUPOS.keys():
         part = [p for p in resultados_grupos.values() if p['equipo_A'] in GRUPOS[g]]
         eqs = df[df['Grupo']==g].to_dict('records')
         if len(part)==6 and len(eqs)==4:
-            det[eqs[0]['Equipo']]["Gr(Bono)"]+=3; det[eqs[1]['Equipo']]["Gr(Bono)"]+=2; det[eqs[3]['Equipo']]["Gr(Bono)"]-=1
-            ter_b.append(eqs[2])
-    ter_b=sorted(ter_b,key=lambda x:(x['Pts'],x['Dif'],x['GF']),reverse=True)
+            det[eqs[0]['Equipo']]["Gr(Bono)"]+=3
+            det[eqs[1]['Equipo']]["Gr(Bono)"]+=2
+            # REGLA ACTUALIZADA: Si quedas último (4º), se resta 1. Si encima tienes 0 puntos, se restan 3.
+            det[eqs[3]['Equipo']]["Gr(Bono)"] -= 3 if eqs[3]['Pts'] == 0 else 1
+            
+    ter_b = sorted([e for g in GRUPOS.keys() for e in df[df['Grupo']==g].to_dict('records') if df[df['Grupo']==g].to_dict('records').index(e)==2 and len([p for p in resultados_grupos.values() if p['equipo_A'] in GRUPOS[g]])==6], key=lambda x:(x['Pts'],x['Dif'],x['GF']), reverse=True)
     for i in range(min(8,len(ter_b))): det[ter_b[i]['Equipo']]["Gr(Bono)"]+=1
     
+    # 2. PUNTOS DE ELIMINATORIAS 
     for m_id,p in resultados_elim.items():
         eA,eB,res,gan=p['equipo_A'],p['equipo_B'],p['resolucion'],p['ganador']
         dif=p['goles_A']-p['goles_B']
@@ -280,6 +296,7 @@ def calcular_puntos(df):
         if dif>=3: pA+=1; pB-=1
         elif dif<=-3: pB+=1; pA-=1
         
+        # REGLAMENTO EXACTO DE LA PORRA (3, 2, 1)
         if res=="90 min":
             if dif>0: pA+=3
             elif dif<0: pB+=3
@@ -287,6 +304,7 @@ def calcular_puntos(df):
             if dif>0: pA+=2
             elif dif<0: pB+=2
         elif res=="Penaltis":
+            # Si llegan a penaltis, AMBOS se llevan 1 punto.
             pA+=1; pB+=1
             
         if m_id=="M104 (FINAL)":
@@ -330,7 +348,6 @@ with col_btn:
 
 st.write("")
 
-# NUEVO: Añadida la pestaña del Sistema de Puntuación al menú
 opciones_menu = ["📊 Clasificación General", "🔥 Tabla de Goleadores", "🏆 Tabla de Grupos", "📅 Resultados Partidos", "⚽ Cuadro Eliminatorias", "📖 Sistema de Puntuación"]
 if st.session_state.admin: opciones_menu += ["--- ZONA ADMIN ---", "👥 Participantes", "🔧 Resultados Grupos", "⚔️ Resultados Elim.", "🥇 Pichichi Equipo", "🎯 Pichichis Jugadores", "➕ Ajuste Puntos"]
 
@@ -491,7 +508,7 @@ elif menu == "⚽ Cuadro Eliminatorias":
 
 
 # ══════════════════════════════════════════
-# NUEVO: REGLAMENTO
+# REGLAMENTO DE LA PORRA
 # ══════════════════════════════════════════
 elif menu == "📖 Sistema de Puntuación":
     st.markdown('<div class="titulo-principal">📖 Reglamento</div>', unsafe_allow_html=True)
@@ -505,12 +522,13 @@ elif menu == "📖 Sistema de Puntuación":
             <li><b>Goleada a favor (ganar de 3 o más goles):</b> +1 punto extra</li>
             <li><b>Goleada en contra (perder de 3 o más goles):</b> -1 punto</li>
         </ul>
-        <h4 style='color:white; margin-top:10px;'>Bono por clasificación a 1/16:</h4>
+        <h4 style='color:white; margin-top:10px;'>Bono por posición final en el grupo:</h4>
         <ul style='color:#ccc; font-size:1.1em; line-height:1.6;'>
             <li><b>1º de Grupo:</b> +3 puntos</li>
             <li><b>2º de Grupo:</b> +2 puntos</li>
-            <li><b>Mejores 3º de Grupo:</b> +1 punto</li>
-            <li><b>Último de Grupo (4º):</b> -1 punto</li>
+            <li><b>Mejores 3º de Grupo (los que pasan de ronda):</b> +1 punto</li>
+            <li><b>Último de Grupo (4º):</b> <span style='color:#FF6347; font-weight:bold;'>-1 punto</span></li>
+            <li><b>Último de Grupo con 0 puntos:</b> <span style='color:red; font-weight:bold;'>-3 puntos</span> (penalización máxima)</li>
         </ul>
     </div>
     
@@ -529,16 +547,17 @@ elif menu == "📖 Sistema de Puntuación":
         <ul style='color:#ccc; font-size:1.1em; line-height:1.6;'>
             <li><b>Campeón del Mundial:</b> +10 puntos de bono</li>
             <li><b>Subcampeón:</b> +6 puntos de bono</li>
-            <li><i>* Se suman también los puntos de 90min/Prórroga/Penaltis de ese partido.</i></li>
+            <li><i>* Se suman también los puntos de 90min/Prórroga/Penaltis que consigan en la final.</i></li>
             <hr style='border-color:#444;'>
             <li><b>Ganador 3º y 4º puesto:</b> +3 puntos fijos</li>
+            <li><b>Perdedor 3º y 4º puesto:</b> 0 puntos</li>
         </ul>
     </div>
     
     <div class="card">
         <h3 style='color:#FFA500; margin-top:0;'>🔥 Bonus Extra</h3>
         <ul style='color:#ccc; font-size:1.1em; line-height:1.6;'>
-            <li><b>Selección Pichichi:</b> +2 puntos a la selección que más goles meta en total en el torneo.</li>
+            <li><b>Selección Pichichi:</b> +2 puntos a la selección que más goles meta en todo el torneo.</li>
         </ul>
     </div>
     """, unsafe_allow_html=True)
