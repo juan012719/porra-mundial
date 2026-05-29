@@ -256,6 +256,7 @@ def calcular_puntos(df):
     pt={e:0 for e in VALOR_EQUIPOS.keys()}
     det={e:{"Gr(Partidos)":0,"Gr(Goles)":0,"Gr(Bono)":0,"Eliminatorias":0,"Pichichi":0, "Log_Elim":[]} for e in VALOR_EQUIPOS.keys()}
     
+    # 1. PUNTOS DE GRUPOS
     for p in resultados_grupos.values():
         eA,eB=p['equipo_A'],p['equipo_B']; dif=p['goles_A']-p['goles_B']
         if dif>=3: det[eA]["Gr(Goles)"]+=1; det[eB]["Gr(Goles)"]-=1
@@ -275,6 +276,7 @@ def calcular_puntos(df):
     ter_b = sorted([e for g in GRUPOS.keys() for e in df[df['Grupo']==g].to_dict('records') if df[df['Grupo']==g].to_dict('records').index(e)==2 and len([p for p in resultados_grupos.values() if p['equipo_A'] in GRUPOS[g]])==6], key=lambda x:(x['Pts'],x['Dif'],x['GF']), reverse=True)
     for i in range(min(8,len(ter_b))): det[ter_b[i]['Equipo']]["Gr(Bono)"]+=1
     
+    # 2. PUNTOS DE ELIMINATORIAS 
     for m_id,p in resultados_elim.items():
         eA,eB,res,gan=p['equipo_A'],p['equipo_B'],p['resolucion'],p['ganador']
         dif=p['goles_A']-p['goles_B']
@@ -353,14 +355,15 @@ with col_btn:
 
 st.write("")
 
-# NUEVO ORDEN DEL MENÚ
+# NUEVO ORDEN DEL MENÚ CON LA OPCIÓN PARA CAMBIAR DE LIGA RÁPIDO
 opciones_menu = [
     "📊 Clasificación General", 
     "🏆 Tabla de Grupos", 
     "📅 Resultados Partidos", 
     "⚽ Cuadro Eliminatorias", 
     "🔥 Tabla de Goleadores", 
-    "📖 Sistema de Puntuación"
+    "📖 Sistema de Puntuación",
+    "🔄 Cambiar de Liga"
 ]
 
 if st.session_state.admin: opciones_menu += ["--- ZONA ADMIN ---", "👥 Participantes", "🔧 Resultados Grupos", "⚔️ Resultados Elim.", "🥇 Pichichi Equipo", "🎯 Pichichis Jugadores", "➕ Ajuste Puntos"]
@@ -378,18 +381,46 @@ if menu == "--- ZONA ADMIN ---": st.info("👆 Selecciona una herramienta de adm
 
 
 # ══════════════════════════════════════════
-# VISTAS PÚBLICAS (EN NUEVO ORDEN)
+# VISTAS PÚBLICAS Y CAMBIO DE LIGA
 # ══════════════════════════════════════════
 
-# --- 1. CLASIFICACIÓN GENERAL ---
-if menu == "📊 Clasificación General":
+# --- 0. CAMBIAR DE LIGA (Atajo rápido) ---
+if menu == "🔄 Cambiar de Liga":
+    st.markdown('<div class="titulo-principal">🔄 Cambiar de Liga</div>', unsafe_allow_html=True)
+    st.markdown('<div class="card" style="text-align: center;">', unsafe_allow_html=True)
+    st.markdown("<p style='color:#aaa; margin-bottom:15px;'>Introduce el código de la nueva liga a la que quieres saltar:</p>", unsafe_allow_html=True)
     
+    nueva_liga = st.text_input("Código", placeholder="Ejemplo: OTRALIGA...", label_visibility="collapsed").strip().upper()
+    if st.button("🚀 Saltar a esta Liga", use_container_width=True):
+        if nueva_liga:
+            if st.session_state.admin: 
+                st.session_state.liga_actual = nueva_liga
+                st.session_state.menu_seleccionado = "📊 Clasificación General"
+                st.rerun()
+            else:
+                existe = False
+                try:
+                    check = get_supabase().table("participantes").select("nombre").eq("liga", nueva_liga).limit(1).execute()
+                    if check.data and len(check.data) > 0: existe = True
+                    else: st.error(f"❌ La liga '{nueva_liga}' no existe.")
+                except Exception:
+                    st.error("Hubo un problema de conexión.")
+                
+                if existe:
+                    st.session_state.liga_actual = nueva_liga
+                    st.session_state.menu_seleccionado = "📊 Clasificación General"
+                    st.rerun()
+        else:
+            st.warning("Escribe un código primero.")
+    st.markdown("</div>", unsafe_allow_html=True)
+
+# --- 1. CLASIFICACIÓN GENERAL ---
+elif menu == "📊 Clasificación General":
     st.markdown('<div class="titulo-principal">📊 Clasificación General</div>', unsafe_allow_html=True)
     
     if not participantes: st.warning("Aún no hay participantes en esta liga.")
     else:
         st.caption("👇 Toca en la fila de cualquier jugador para desplegar sus equipos y partidos.")
-        
         for i, row in enumerate(clasificacion_ordenada):
             med = ["🥇","🥈","🥉"][i] if i < 3 else f"#{i+1}"
             
