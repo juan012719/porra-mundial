@@ -40,6 +40,7 @@ st.markdown("""
     .mini-card { background-color: #1a202a; border: 1px solid #333; border-radius: 8px; padding: 12px; margin-bottom: 8px; }
     
     .login-wrapper { display: flex; flex-direction: column; align-items: center; width: 100%; margin-top: 0; }
+    .login-box { background: linear-gradient(135deg, #1e2530, #252d3a); border: 1px solid #2d3748; border-radius: 12px; padding: 30px 20px; width: 100%; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.5); margin-bottom: 20px; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -184,41 +185,61 @@ if not st.session_state.liga_actual:
     st.image("https://fotografias.antena3.com/clipping/cmsimages02/2022/12/19/57017F2A-8327-404D-8997-5C37A44CDC03/messi-replica-iconica-imagen-maradona-copa-mundo_97.jpg?crop=4096,2304,x0,y0&width=1600&height=900&optimize=low&format=webply", use_container_width=True)
     st.markdown('<div class="titulo-landing">⚽ Porra Mundial 2026</div>', unsafe_allow_html=True)
     st.markdown('<div class="subtitulo">USA · CANADA · MEXICO</div>', unsafe_allow_html=True)
-    
     st.write("")
     
     c1, c2, c3 = st.columns([1, 8, 1])
     with c2:
-        # SECCIÓN 1: Entrar a liga existente
-        ligas_disp = obtener_ligas_existentes()
-        if ligas_disp:
+        # VISTA DE USUARIO NORMAL (PRIVACIDAD TOTAL)
+        if not st.session_state.admin:
+            st.markdown('<div class="login-box">', unsafe_allow_html=True)
             st.markdown('<h3 style="color:white; text-align:center; margin-top:0;">🏆 Accede a tu Porra</h3>', unsafe_allow_html=True)
-            liga_seleccionada = st.selectbox("Ligas disponibles", ligas_disp, label_visibility="collapsed")
-            if st.button("🚀 ENTRAR A MI LIGA", use_container_width=True):
-                st.session_state.liga_actual = liga_seleccionada
-                st.rerun()
-                
-            st.markdown("<hr style='border-color: #333; margin: 20px 0;'>", unsafe_allow_html=True)
-        else:
-            st.info("Aún no hay ligas creadas. ¡Crea la primera!")
-
-        # SECCIÓN 2: Crear liga nueva
-        with st.expander("✨ ¿Quieres crear una nueva Liga?"):
-            nueva_liga_input = st.text_input("Nombre de la Liga", placeholder="Ej: LA_CUADRILLA_26", label_visibility="collapsed").strip().upper()
+            st.markdown('<p style="color:#aaa; text-align:center; margin-bottom:15px;">Introduce el código secreto para entrar a tu liga.</p>', unsafe_allow_html=True)
+            
+            codigo = st.text_input("Código", placeholder="Ejemplo: CUADRILLA...", label_visibility="collapsed").strip().upper()
             st.write("")
+            if st.button("🚀 ENTRAR A MI LIGA", use_container_width=True):
+                if codigo:
+                    existe = False
+                    try:
+                        check = get_supabase().table("participantes").select("nombre").eq("liga", codigo).limit(1).execute()
+                        if check.data and len(check.data) > 0: existe = True
+                        else: st.error(f"❌ La liga '{codigo}' no existe. Comprueba el código.")
+                    except Exception: st.error("Hubo un problema de conexión. Inténtalo de nuevo.")
+                    
+                    if existe:
+                        st.session_state.liga_actual = codigo; st.rerun()
+                else: st.error("Escribe un código para entrar.")
+            st.markdown("</div>", unsafe_allow_html=True)
+            
+        # VISTA DE ADMIN (CONTROL TOTAL)
+        else:
+            st.markdown('<div class="login-box" style="border-color: #FFD700; box-shadow: 0 4px 15px rgba(255,215,0,0.2);">', unsafe_allow_html=True)
+            st.markdown('<h3 style="color:#FFD700; text-align:center; margin-top:0;">🛡️ MODO ADMINISTRADOR</h3>', unsafe_allow_html=True)
+            
+            # Entrar a liga existente
+            ligas_disp = obtener_ligas_existentes()
+            if ligas_disp:
+                st.markdown('<p style="color:#aaa; text-align:left; margin-bottom:5px;">Entrar a una liga existente:</p>', unsafe_allow_html=True)
+                liga_seleccionada = st.selectbox("Ligas disponibles", ligas_disp, label_visibility="collapsed")
+                if st.button("🚀 ENTRAR A LA PORRA", use_container_width=True):
+                    st.session_state.liga_actual = liga_seleccionada
+                    st.rerun()
+                st.markdown("<hr style='border-color: #444; margin: 20px 0;'>", unsafe_allow_html=True)
+            
+            # Crear liga nueva
+            st.markdown('<p style="color:#aaa; text-align:left; margin-bottom:5px;">O crear una nueva:</p>', unsafe_allow_html=True)
+            nueva_liga_input = st.text_input("Nombre de la Liga", placeholder="Ej: NUEVA_LIGA_26", label_visibility="collapsed").strip().upper()
             if st.button("➕ CREAR Y ENTRAR", use_container_width=True):
-                if not st.session_state.admin:
-                    st.error("⛔ Solo para Admin. Inicia sesión abajo primero.")
-                elif nueva_liga_input:
+                if nueva_liga_input:
                     st.session_state.liga_actual = nueva_liga_input
                     st.rerun()
-                else:
-                    st.error("Escribe un nombre para la liga.")
+                else: st.error("Escribe un nombre para la nueva liga.")
+                
+            st.markdown("</div>", unsafe_allow_html=True)
             
-    st.markdown("</div>", unsafe_allow_html=True)
-    st.write("")
     st.write("")
     
+    # El Login de Admin siempre abajo del todo
     if not st.session_state.admin:
         with st.expander("⚙️ Acceso Administrador"):
             pwd = st.text_input("Contraseña Admin", type="password")
