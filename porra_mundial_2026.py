@@ -25,7 +25,7 @@ st.markdown("""
     }
     button:hover { background-color: #FFA500 !important; }
     
-    /* Expanders Nativos para la Clasificación (INAMOVIBLES Y PERFECTOS) */
+    /* Expanders Nativos (Clasificación y Login) */
     [data-testid="stExpander"] { background-color: #1e2530; border: 1px solid #333; border-radius: 8px; margin-bottom: 10px; }
     [data-testid="stExpander"] summary { background-color: transparent !important; padding: 15px !important; }
     [data-testid="stExpander"] summary p { font-size: 1.2em; font-weight: bold; color: white; margin: 0; }
@@ -186,29 +186,37 @@ if not st.session_state.liga_actual:
     st.markdown('<div class="subtitulo">USA · CANADA · MEXICO</div>', unsafe_allow_html=True)
     
     st.write("")
-    st.markdown('<h3 style="color:white; text-align:center; margin-top:10px;">🏆 Accede a tu Porra</h3>', unsafe_allow_html=True)
-    st.markdown('<p style="color:#aaa; text-align:center; margin-bottom:20px;">Introduce el código secreto para entrar a tu liga.</p>', unsafe_allow_html=True)
     
     c1, c2, c3 = st.columns([1, 8, 1])
     with c2:
-        codigo = st.text_input("Código", placeholder="Ejemplo: CUADRILLA...", label_visibility="collapsed").strip().upper()
-        st.write("")
-        if st.button("🚀 ENTRAR A MI LIGA", use_container_width=True):
-            if codigo:
-                if st.session_state.admin: 
-                    st.session_state.liga_actual = codigo; st.rerun()
+        # SECCIÓN 1: Entrar a liga existente
+        ligas_disp = obtener_ligas_existentes()
+        if ligas_disp:
+            st.markdown('<h3 style="color:white; text-align:center; margin-top:0;">🏆 Accede a tu Porra</h3>', unsafe_allow_html=True)
+            liga_seleccionada = st.selectbox("Ligas disponibles", ligas_disp, label_visibility="collapsed")
+            if st.button("🚀 ENTRAR A MI LIGA", use_container_width=True):
+                st.session_state.liga_actual = liga_seleccionada
+                st.rerun()
+                
+            st.markdown("<hr style='border-color: #333; margin: 20px 0;'>", unsafe_allow_html=True)
+        else:
+            st.info("Aún no hay ligas creadas. ¡Crea la primera!")
+
+        # SECCIÓN 2: Crear liga nueva (con Expander elegante para que no ocupe espacio y sin cuadro feo)
+        with st.expander("✨ ¿Quieres crear una nueva Liga?"):
+            nueva_liga_input = st.text_input("Nombre de la Liga", placeholder="Ej: LA_CUADRILLA_26", label_visibility="collapsed").strip().upper()
+            st.write("")
+            if st.button("➕ CREAR Y ENTRAR", use_container_width=True):
+                if nueva_liga_input:
+                    st.session_state.liga_actual = nueva_liga_input
+                    st.rerun()
                 else:
-                    existe = False
-                    try:
-                        check = get_supabase().table("participantes").select("nombre").eq("liga", codigo).limit(1).execute()
-                        if check.data and len(check.data) > 0: existe = True
-                        else: st.error(f"❌ La liga '{codigo}' no existe. Comprueba el código.")
-                    except Exception: st.error("Hubo un problema de conexión. Inténtalo de nuevo.")
-                    if existe: st.session_state.liga_actual = codigo; st.rerun()
-            else: st.error("Escribe un código para entrar.")
+                    st.error("Escribe un nombre.")
             
     st.markdown("</div>", unsafe_allow_html=True)
     st.write("")
+    st.write("")
+    
     if not st.session_state.admin:
         with st.expander("⚙️ Acceso Administrador"):
             pwd = st.text_input("Contraseña Admin", type="password")
@@ -265,6 +273,7 @@ def calcular_puntos(df):
     pt={e:0 for e in VALOR_EQUIPOS.keys()}
     det={e:{"Gr(Partidos)":0,"Gr(Goles)":0,"Gr(Bono)":0,"Eliminatorias":0,"Pichichi":0, "Log_Elim":[]} for e in VALOR_EQUIPOS.keys()}
     
+    # 1. PUNTOS DE GRUPOS
     for p in resultados_grupos.values():
         eA,eB=p['equipo_A'],p['equipo_B']; dif=p['goles_A']-p['goles_B']
         if dif>=3: det[eA]["Gr(Goles)"]+=1; det[eB]["Gr(Goles)"]-=1
@@ -284,6 +293,7 @@ def calcular_puntos(df):
     ter_b = sorted([e for g in GRUPOS.keys() for e in df[df['Grupo']==g].to_dict('records') if df[df['Grupo']==g].to_dict('records').index(e)==2 and len([p for p in resultados_grupos.values() if p['equipo_A'] in GRUPOS[g]])==6], key=lambda x:(x['Pts'],x['Dif'],x['GF']), reverse=True)
     for i in range(min(8,len(ter_b))): det[ter_b[i]['Equipo']]["Gr(Bono)"]+=1
     
+    # 2. PUNTOS DE ELIMINATORIAS 
     for m_id,p in resultados_elim.items():
         eA,eB,res,gan=p['equipo_A'],p['equipo_B'],p['resolucion'],p['ganador']
         dif=p['goles_A']-p['goles_B']
@@ -362,7 +372,6 @@ with col_btn:
 
 st.write("")
 
-# Menú público
 opciones_menu = [
     "📊 Clasificación General", 
     "🏆 Tabla de Grupos", 
@@ -372,7 +381,6 @@ opciones_menu = [
     "📖 Sistema de Puntuación"
 ]
 
-# Si es admin, añadimos sus herramientas secretas (incluyendo el salto de liga)
 if st.session_state.admin: 
     opciones_menu += [
         "--- ZONA ADMIN ---", 
@@ -401,8 +409,27 @@ if menu == "--- ZONA ADMIN ---": st.info("👆 Selecciona una herramienta de adm
 # VISTAS (PÚBLICAS Y ADMIN)
 # ══════════════════════════════════════════
 
+# --- 0. CAMBIAR DE LIGA RÁPIDO (ZONA ADMIN) ---
+if menu == "🔄 Cambiar de Liga":
+    st.markdown('<div class="titulo-principal">🔄 Cambiar de Liga</div>', unsafe_allow_html=True)
+    st.markdown('<div class="card" style="text-align: center;">', unsafe_allow_html=True)
+    st.markdown("<p style='color:#aaa; margin-bottom:15px;'>Selecciona la nueva liga a la que quieres saltar:</p>", unsafe_allow_html=True)
+    
+    ligas_todas = obtener_ligas_existentes()
+    if ligas_todas:
+        liga_salto = st.selectbox("Ligas disponibles:", ligas_todas, label_visibility="collapsed")
+        st.write("")
+        if st.button("🚀 Saltar a esta Liga", use_container_width=True):
+            st.session_state.liga_actual = liga_salto
+            st.session_state.menu_seleccionado = "📊 Clasificación General"
+            st.rerun()
+    else:
+        st.warning("No hay otras ligas creadas en el sistema.")
+    st.markdown("</div>", unsafe_allow_html=True)
+
+
 # --- 1. CLASIFICACIÓN GENERAL ---
-if menu == "📊 Clasificación General":
+elif menu == "📊 Clasificación General":
     
     st.markdown('<div class="titulo-principal">📊 Clasificación General</div>', unsafe_allow_html=True)
     
@@ -604,25 +631,8 @@ elif menu == "📖 Sistema de Puntuación":
 
 
 # ══════════════════════════════════════════
-# ZONA ADMIN (Y ATAJOS)
+# ZONA ADMIN
 # ══════════════════════════════════════════
-elif menu == "🔄 Cambiar de Liga":
-    st.markdown('<div class="titulo-principal">🔄 Cambiar de Liga</div>', unsafe_allow_html=True)
-    st.markdown('<div class="card" style="text-align: center;">', unsafe_allow_html=True)
-    st.markdown("<p style='color:#aaa; margin-bottom:15px;'>Selecciona la nueva liga a la que quieres saltar:</p>", unsafe_allow_html=True)
-    
-    ligas_todas = obtener_ligas_existentes()
-    if ligas_todas:
-        liga_salto = st.selectbox("Ligas disponibles:", ligas_todas, label_visibility="collapsed")
-        st.write("")
-        if st.button("🚀 Saltar a esta Liga", use_container_width=True):
-            st.session_state.liga_actual = liga_salto
-            st.session_state.menu_seleccionado = "📊 Clasificación General"
-            st.rerun()
-    else:
-        st.warning("No hay otras ligas creadas en el sistema.")
-    st.markdown("</div>", unsafe_allow_html=True)
-
 elif menu == "👥 Participantes":
     st.markdown('<div class="titulo-principal">👥 Participantes</div>', unsafe_allow_html=True)
     nombre = st.text_input("Nombre")
