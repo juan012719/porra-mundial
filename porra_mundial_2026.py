@@ -25,7 +25,7 @@ st.markdown("""
     }
     button:hover { background-color: #FFA500 !important; }
     
-    /* Expanders Nativos (Clasificación y Login) */
+    /* Expanders Nativos para la Clasificación (INAMOVIBLES Y PERFECTOS) */
     [data-testid="stExpander"] { background-color: #1e2530; border: 1px solid #333; border-radius: 8px; margin-bottom: 10px; }
     [data-testid="stExpander"] summary { background-color: transparent !important; padding: 15px !important; }
     [data-testid="stExpander"] summary p { font-size: 1.2em; font-weight: bold; color: white; margin: 0; }
@@ -202,16 +202,18 @@ if not st.session_state.liga_actual:
         else:
             st.info("Aún no hay ligas creadas. ¡Crea la primera!")
 
-        # SECCIÓN 2: Crear liga nueva (con Expander elegante para que no ocupe espacio y sin cuadro feo)
+        # SECCIÓN 2: Crear liga nueva
         with st.expander("✨ ¿Quieres crear una nueva Liga?"):
             nueva_liga_input = st.text_input("Nombre de la Liga", placeholder="Ej: LA_CUADRILLA_26", label_visibility="collapsed").strip().upper()
             st.write("")
             if st.button("➕ CREAR Y ENTRAR", use_container_width=True):
-                if nueva_liga_input:
+                if not st.session_state.admin:
+                    st.error("⛔ Solo para Admin. Inicia sesión abajo primero.")
+                elif nueva_liga_input:
                     st.session_state.liga_actual = nueva_liga_input
                     st.rerun()
                 else:
-                    st.error("Escribe un nombre.")
+                    st.error("Escribe un nombre para la liga.")
             
     st.markdown("</div>", unsafe_allow_html=True)
     st.write("")
@@ -273,7 +275,6 @@ def calcular_puntos(df):
     pt={e:0 for e in VALOR_EQUIPOS.keys()}
     det={e:{"Gr(Partidos)":0,"Gr(Goles)":0,"Gr(Bono)":0,"Eliminatorias":0,"Pichichi":0, "Log_Elim":[]} for e in VALOR_EQUIPOS.keys()}
     
-    # 1. PUNTOS DE GRUPOS
     for p in resultados_grupos.values():
         eA,eB=p['equipo_A'],p['equipo_B']; dif=p['goles_A']-p['goles_B']
         if dif>=3: det[eA]["Gr(Goles)"]+=1; det[eB]["Gr(Goles)"]-=1
@@ -293,7 +294,6 @@ def calcular_puntos(df):
     ter_b = sorted([e for g in GRUPOS.keys() for e in df[df['Grupo']==g].to_dict('records') if df[df['Grupo']==g].to_dict('records').index(e)==2 and len([p for p in resultados_grupos.values() if p['equipo_A'] in GRUPOS[g]])==6], key=lambda x:(x['Pts'],x['Dif'],x['GF']), reverse=True)
     for i in range(min(8,len(ter_b))): det[ter_b[i]['Equipo']]["Gr(Bono)"]+=1
     
-    # 2. PUNTOS DE ELIMINATORIAS 
     for m_id,p in resultados_elim.items():
         eA,eB,res,gan=p['equipo_A'],p['equipo_B'],p['resolucion'],p['ganador']
         dif=p['goles_A']-p['goles_B']
