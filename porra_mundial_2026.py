@@ -3,7 +3,7 @@ import pandas as pd
 from supabase import create_client
 
 # --- CONFIGURACIÓN ---
-st.set_page_config(page_title="Porra Mundial 2026 🌍", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="Porra Mundial 2026", layout="wide", initial_sidebar_state="collapsed")
 
 # CSS personalizado global
 st.markdown("""
@@ -138,6 +138,7 @@ if "menu_seleccionado" not in st.session_state: st.session_state.menu_selecciona
 
 if not st.session_state.liga_actual:
     st.markdown('<div class="login-wrapper">', unsafe_allow_html=True)
+    
     st.image("https://fotografias.antena3.com/clipping/cmsimages02/2022/12/19/57017F2A-8327-404D-8997-5C37A44CDC03/messi-replica-iconica-imagen-maradona-copa-mundo_97.jpg?crop=4096,2304,x0,y0&width=1600&height=900&optimize=low&format=webply", use_container_width=True)
     st.markdown('<div class="titulo-landing">⚽ Porra Mundial 2026</div>', unsafe_allow_html=True)
     st.markdown('<div class="subtitulo">USA · CANADA · MEXICO</div>', unsafe_allow_html=True)
@@ -197,7 +198,7 @@ resultados_elim = cargar_resultados_elim()
 pichichi = cargar_pichichi()
 goleadores_reales = cargar_pichichis_reales()
 
-# NUEVO: Función global para evitar el NameError en la vista Admin
+# Función global para evitar el NameError en la vista Admin
 def qu_gan(m_id, perdedor=False):
     return resultados_elim[m_id]['perdedor' if perdedor else 'ganador'] if m_id in resultados_elim else "❓"
 
@@ -233,7 +234,6 @@ pos_grupos = obtener_clasificados(df_tabla)
 
 def calcular_puntos(df):
     pt={e:0 for e in VALOR_EQUIPOS.keys()}
-    # NUEVO: Log_Elim para registrar de dónde salen los puntos de eliminatorias
     det={e:{"Gr(Partidos)":0,"Gr(Goles)":0,"Gr(Bono)":0,"Eliminatorias":0,"Pichichi":0, "Log_Elim":[]} for e in VALOR_EQUIPOS.keys()}
     
     for p in resultados_grupos.values():
@@ -278,14 +278,14 @@ def calcular_puntos(df):
         if dif>=3: pA+=1; pB-=1
         elif dif<=-3: pB+=1; pA-=1
         
+        # NUEVAS REGLAS DE PUNTOS FASE FINAL
         if res=="90 min":
-            if dif>0: pA+=4
-            elif dif<0: pB+=4
-        elif res=="Prórroga":
             if dif>0: pA+=3
             elif dif<0: pB+=3
+        elif res=="Prórroga":
+            if dif>0: pA+=2
+            elif dif<0: pB+=2
         elif res=="Penaltis":
-            pA+=1; pB+=1
             if gan==eA: pA+=1
             else: pB+=1
             
@@ -302,7 +302,6 @@ def calcular_puntos(df):
             
     if pichichi: det[pichichi]["Pichichi"]+=2
     
-    # Sumar explícitamente para ignorar el Log_Elim
     for eq in VALOR_EQUIPOS.keys(): 
         pt[eq] = det[eq]["Gr(Partidos)"] + det[eq]["Gr(Goles)"] + det[eq]["Gr(Bono)"] + det[eq]["Eliminatorias"] + det[eq]["Pichichi"]
     return pt, det
@@ -370,7 +369,7 @@ if menu == "📊 Clasificación General":
                     if det['Gr(Bono)'] != 0: desglose.append(f"Bon: {det['Gr(Bono)']}")
                     if det['Pichichi'] != 0: desglose.append(f"Pich: {det['Pichichi']}")
                     
-                    # NUEVO: Mostrar el origen de los puntos de Eliminatorias
+                    # Mostrar el origen de los puntos de Eliminatorias
                     if det['Eliminatorias'] != 0: 
                         log_str = " ".join(det["Log_Elim"])
                         desglose.append(f"Elim: {det['Eliminatorias']} ({log_str})")
@@ -539,7 +538,7 @@ elif menu == "⚔️ Resultados Elim.":
     cf=st.columns(2); [renderizar(m_id,qu_gan(m1.replace("_L",""),perdedor="_L" in m1),qu_gan(m2.replace("_L",""),perdedor="_L" in m2),cf[i]) for i,(m_id,(m1,m2)) in enumerate(CRUCES_FINALES.items())]
 
 elif menu == "🥇 Pichichi Equipo":
-    sel = st.selectbox("Selección Máxima Goleadora (Da puntos extra)", ["Ninguno aún..."] + list(VALOR_EQUIPOS.keys()), index=(["Ninguno aún..."] + list(VALOR_EQUIPOS.keys())).index(pichichi) if pichichi else 0)
+    sel = st.selectbox("Selección Máxima Goleadora", ["Ninguno aún..."] + list(VALOR_EQUIPOS.keys()), index=(["Ninguno aún..."] + list(VALOR_EQUIPOS.keys())).index(pichichi) if pichichi else 0)
     if st.button("💾 Guardar",use_container_width=True): guardar_pichichi(sel if sel!="Ninguno aún..." else None); st.success("Guardado")
 
 elif menu == "🎯 Pichichis Jugadores":
