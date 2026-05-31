@@ -40,7 +40,6 @@ st.markdown("""
     .mini-card { background-color: #1a202a; border: 1px solid #333; border-radius: 8px; padding: 12px; margin-bottom: 8px; }
     
     .login-wrapper { display: flex; flex-direction: column; align-items: center; width: 100%; margin-top: 0; }
-    .login-box { background: linear-gradient(135deg, #1e2530, #252d3a); border: 1px solid #2d3748; border-radius: 12px; padding: 30px 20px; width: 100%; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.5); margin-bottom: 20px; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -185,13 +184,13 @@ if not st.session_state.liga_actual:
     st.image("https://fotografias.antena3.com/clipping/cmsimages02/2022/12/19/57017F2A-8327-404D-8997-5C37A44CDC03/messi-replica-iconica-imagen-maradona-copa-mundo_97.jpg?crop=4096,2304,x0,y0&width=1600&height=900&optimize=low&format=webply", use_container_width=True)
     st.markdown('<div class="titulo-landing">⚽ Porra Mundial 2026</div>', unsafe_allow_html=True)
     st.markdown('<div class="subtitulo">USA · CANADA · MEXICO</div>', unsafe_allow_html=True)
+    
     st.write("")
     
     c1, c2, c3 = st.columns([1, 8, 1])
     with c2:
-        # VISTA DE USUARIO NORMAL (PRIVACIDAD TOTAL)
+        # VISTA DE USUARIO NORMAL (PRIVACIDAD TOTAL, SIN RECUADRO)
         if not st.session_state.admin:
-            st.markdown('<div class="login-box">', unsafe_allow_html=True)
             st.markdown('<h3 style="color:white; text-align:center; margin-top:0;">🏆 Accede a tu Porra</h3>', unsafe_allow_html=True)
             st.markdown('<p style="color:#aaa; text-align:center; margin-bottom:15px;">Introduce el código secreto para entrar a tu liga.</p>', unsafe_allow_html=True)
             
@@ -209,11 +208,9 @@ if not st.session_state.liga_actual:
                     if existe:
                         st.session_state.liga_actual = codigo; st.rerun()
                 else: st.error("Escribe un código para entrar.")
-            st.markdown("</div>", unsafe_allow_html=True)
             
-        # VISTA DE ADMIN (CONTROL TOTAL)
+        # VISTA DE ADMIN (CONTROL TOTAL CON CORONA Y COLORES DEL MUNDIAL)
         else:
-            st.markdown('<div class="login-box" style="border-color: #FFD700; box-shadow: 0 4px 15px rgba(255,215,0,0.2);">', unsafe_allow_html=True)
             st.markdown('<h3 style="color:#FFD700; text-align:center; margin-top:0;">🛡️ MODO ADMINISTRADOR</h3>', unsafe_allow_html=True)
             
             # Entrar a liga existente
@@ -234,12 +231,10 @@ if not st.session_state.liga_actual:
                     st.session_state.liga_actual = nueva_liga_input
                     st.rerun()
                 else: st.error("Escribe un nombre para la nueva liga.")
-                
-            st.markdown("</div>", unsafe_allow_html=True)
             
     st.write("")
     
-    # El Login de Admin siempre abajo del todo
+    # El Login de Admin siempre abajo del todo (Este sí usa expander nativo, que es útil)
     if not st.session_state.admin:
         with st.expander("⚙️ Acceso Administrador"):
             pwd = st.text_input("Contraseña Admin", type="password")
@@ -645,7 +640,7 @@ elif menu == "📖 Sistema de Puntuación":
     <div class="card">
         <h3 style='color:#FFA500; margin-top:0;'>🔥 Bonus Extra</h3>
         <ul style='color:#ccc; font-size:1.1em; line-height:1.6;'>
-            <li><b>Selección Pichichi:</b> +2 puntos extra a la selección que más goles meta en todo el torneo.</li>
+            <li><b>Selección Pichichi:</b> +2 puntos extra a la selección que tenga al jugador que gane la Bota de Oro (Pichichi) del torneo.</li>
         </ul>
     </div>
     """, unsafe_allow_html=True)
@@ -717,7 +712,7 @@ elif menu == "⚔️ Resultados Elim.":
     for i,(m_id,(m1,m2)) in enumerate(CRUCES_FINALES.items()): renderizar(m_id,qu_gan(m1.replace("_L",""),perdedor="_L" in m1),qu_gan(m2.replace("_L",""),perdedor="_L" in m2),cf[i])
 
 elif menu == "🥇 Pichichi Equipo":
-    sel = st.selectbox("Selección Máxima Goleadora (Da puntos extra)", ["Ninguno aún..."] + list(VALOR_EQUIPOS.keys()), index=(["Ninguno aún..."] + list(VALOR_EQUIPOS.keys())).index(pichichi) if pichichi else 0)
+    sel = st.selectbox("Selección del Jugador Pichichi (Bota de Oro)", ["Ninguno aún..."] + list(VALOR_EQUIPOS.keys()), index=(["Ninguno aún..."] + list(VALOR_EQUIPOS.keys())).index(pichichi) if pichichi else 0)
     if st.button("💾 Guardar",use_container_width=True): guardar_pichichi(sel if sel!="Ninguno aún..." else None); st.success("Guardado")
 
 elif menu == "🎯 Pichichis Jugadores":
