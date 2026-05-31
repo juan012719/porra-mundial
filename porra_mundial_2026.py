@@ -406,7 +406,8 @@ if st.session_state.admin:
         "⚔️ Resultados Elim.", 
         "🥇 Pichichi Equipo", 
         "🎯 Pichichis Jugadores", 
-        "➕ Ajuste Puntos"
+        "➕ Ajuste Puntos",
+        "🗑️ Limpiar Datos"
     ]
 
 try: idx_menu = opciones_menu.index(st.session_state.menu_seleccionado)
@@ -647,8 +648,9 @@ elif menu == "📖 Sistema de Puntuación":
 
 
 # ══════════════════════════════════════════
-# ZONA ADMIN
+# ZONA ADMIN (HERRAMIENTAS DE EDICIÓN)
 # ══════════════════════════════════════════
+
 elif menu == "👥 Participantes":
     st.markdown('<div class="titulo-principal">👥 Participantes</div>', unsafe_allow_html=True)
     nombre = st.text_input("Nombre")
@@ -712,7 +714,7 @@ elif menu == "⚔️ Resultados Elim.":
     for i,(m_id,(m1,m2)) in enumerate(CRUCES_FINALES.items()): renderizar(m_id,qu_gan(m1.replace("_L",""),perdedor="_L" in m1),qu_gan(m2.replace("_L",""),perdedor="_L" in m2),cf[i])
 
 elif menu == "🥇 Pichichi Equipo":
-    sel = st.selectbox("Selección del Jugador Pichichi (Bota de Oro)", ["Ninguno aún..."] + list(VALOR_EQUIPOS.keys()), index=(["Ninguno aún..."] + list(VALOR_EQUIPOS.keys())).index(pichichi) if pichichi else 0)
+    sel = st.selectbox("Selección Máxima Goleadora (Da puntos extra)", ["Ninguno aún..."] + list(VALOR_EQUIPOS.keys()), index=(["Ninguno aún..."] + list(VALOR_EQUIPOS.keys())).index(pichichi) if pichichi else 0)
     if st.button("💾 Guardar",use_container_width=True): guardar_pichichi(sel if sel!="Ninguno aún..." else None); st.success("Guardado")
 
 elif menu == "🎯 Pichichis Jugadores":
@@ -749,3 +751,68 @@ elif menu == "➕ Ajuste Puntos":
     if p_sel:
         nv = st.number_input("Puntos extra:", value=ajustes_manuales.get(p_sel, 0))
         if st.button("💾 Aplicar"): guardar_ajuste_puntos(liga_actual, p_sel, nv); st.rerun()
+
+# --- NUEVO: ZONA DE PELIGRO (LIMPIEZA DE DATOS) ---
+elif menu == "🗑️ Limpiar Datos":
+    st.markdown('<div class="titulo-principal">🗑️ Limpiar Resultados</div>', unsafe_allow_html=True)
+    st.warning("⚠️ **ATENCIÓN:** Esta acción borrará los resultados y afectará a la puntuación de TODAS las ligas.")
+    
+    c1, c2 = st.columns(2)
+    with c1:
+        st.markdown("<h4 style='color:white;'>Fase de Grupos</h4>", unsafe_allow_html=True)
+        if st.button("🗑️ Borrar Grupos", use_container_width=True):
+            sb = get_supabase()
+            for k in list(resultados_grupos.keys()):
+                try: sb.table("resultados_grupos").delete().eq("key", k).execute()
+                except: pass
+            cargar_resultados_grupos.clear()
+            st.success("Resultados de grupos borrados.")
+            st.rerun()
+            
+        st.markdown("<h4 style='color:white; margin-top:20px;'>Fase Eliminatoria</h4>", unsafe_allow_html=True)
+        if st.button("🗑️ Borrar Eliminatorias", use_container_width=True):
+            sb = get_supabase()
+            for k in list(resultados_elim.keys()):
+                try: sb.table("resultados_elim").delete().eq("key", k).execute()
+                except: pass
+            cargar_resultados_elim.clear()
+            st.success("Resultados de eliminatorias borrados.")
+            st.rerun()
+
+    with c2:
+        st.markdown("<h4 style='color:white;'>Goles y Pichichis</h4>", unsafe_allow_html=True)
+        if st.button("🗑️ Borrar Goleadores", use_container_width=True):
+            sb = get_supabase()
+            for j in goleadores_reales:
+                try: sb.table("pichichis_reales").delete().eq("jugador", j["jugador"]).execute()
+                except: pass
+            cargar_pichichis_reales.clear()
+            st.success("Goleadores borrados.")
+            st.rerun()
+            
+        if st.button("🗑️ Borrar Sel. Pichichi", use_container_width=True):
+            guardar_pichichi(None)
+            st.success("Selección Pichichi borrada.")
+            st.rerun()
+            
+    st.divider()
+    st.markdown("<h4 style='color:#FF6347; text-align:center;'>Peligro Máximo</h4>", unsafe_allow_html=True)
+    check = st.checkbox("Entiendo que borrar TODOS los datos del torneo es irreversible")
+    if check:
+        if st.button("💥 BORRAR TODOS LOS RESULTADOS DEL TORNEO 💥", use_container_width=True):
+            sb = get_supabase()
+            for k in list(resultados_grupos.keys()):
+                try: sb.table("resultados_grupos").delete().eq("key", k).execute()
+                except: pass
+            for k in list(resultados_elim.keys()):
+                try: sb.table("resultados_elim").delete().eq("key", k).execute()
+                except: pass
+            for j in goleadores_reales:
+                try: sb.table("pichichis_reales").delete().eq("jugador", j["jugador"]).execute()
+                except: pass
+            guardar_pichichi(None)
+            
+            cargar_resultados_grupos.clear()
+            cargar_resultados_elim.clear()
+            cargar_pichichis_reales.clear()
+            st.rerun()
