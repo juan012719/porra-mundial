@@ -40,7 +40,6 @@ st.markdown("""
     .mini-card { background-color: #1a202a; border: 1px solid #333; border-radius: 8px; padding: 12px; margin-bottom: 8px; }
     
     .login-wrapper { display: flex; flex-direction: column; align-items: center; width: 100%; margin-top: 0; }
-    .login-box { background: linear-gradient(135deg, #1e2530, #252d3a); border: 1px solid #2d3748; border-radius: 12px; padding: 30px 20px; width: 100%; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.5); margin-bottom: 20px; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -176,7 +175,14 @@ def qu_gan(m_id, perdedor=False):
 # ══════════════════════════════════════════
 # CONTROL DE ESTADO (LOGIN Y NAVEGACIÓN)
 # ══════════════════════════════════════════
-if "liga_actual" not in st.session_state: st.session_state.liga_actual = ""
+
+# ¡NUEVO!: Verificamos si la URL ya contiene una liga guardada mágicamente
+if "liga_actual" not in st.session_state: 
+    if "liga" in st.query_params:
+        st.session_state.liga_actual = st.query_params["liga"]
+    else:
+        st.session_state.liga_actual = ""
+
 if "admin" not in st.session_state: st.session_state.admin = False
 if "menu_seleccionado" not in st.session_state: st.session_state.menu_seleccionado = "📊 Clasificación General"
 
@@ -190,7 +196,7 @@ if not st.session_state.liga_actual:
     
     c1, c2, c3 = st.columns([1, 8, 1])
     with c2:
-        # VISTA DE USUARIO NORMAL (PRIVACIDAD TOTAL, SIN RECUADRO)
+        # VISTA DE USUARIO NORMAL
         if not st.session_state.admin:
             st.markdown('<h3 style="color:white; text-align:center; margin-top:0;">🏆 Accede a tu Porra</h3>', unsafe_allow_html=True)
             st.markdown('<p style="color:#aaa; text-align:center; margin-bottom:15px;">Introduce el código secreto para entrar a tu liga.</p>', unsafe_allow_html=True)
@@ -207,29 +213,31 @@ if not st.session_state.liga_actual:
                     except Exception: st.error("Hubo un problema de conexión. Inténtalo de nuevo.")
                     
                     if existe:
-                        st.session_state.liga_actual = codigo; st.rerun()
+                        st.session_state.liga_actual = codigo
+                        st.query_params["liga"] = codigo  # GUARDAR EN URL
+                        st.rerun()
                 else: st.error("Escribe un código para entrar.")
             
         # VISTA DE ADMIN (CONTROL TOTAL)
         else:
             st.markdown('<h3 style="color:#FFD700; text-align:center; margin-top:0;">🛡️ MODO ADMINISTRADOR</h3>', unsafe_allow_html=True)
             
-            # Entrar a liga existente
             ligas_disp = obtener_ligas_existentes()
             if ligas_disp:
                 st.markdown('<p style="color:#aaa; text-align:left; margin-bottom:5px;">Entrar a una liga existente:</p>', unsafe_allow_html=True)
                 liga_seleccionada = st.selectbox("Ligas disponibles", ligas_disp, label_visibility="collapsed")
                 if st.button("🚀 ENTRAR A LA PORRA", use_container_width=True):
                     st.session_state.liga_actual = liga_seleccionada
+                    st.query_params["liga"] = liga_seleccionada  # GUARDAR EN URL
                     st.rerun()
                 st.markdown("<hr style='border-color: #444; margin: 20px 0;'>", unsafe_allow_html=True)
             
-            # Crear liga nueva
             st.markdown('<p style="color:#aaa; text-align:left; margin-bottom:5px;">O crear una nueva:</p>', unsafe_allow_html=True)
             nueva_liga_input = st.text_input("Nombre de la Liga", placeholder="Ej: NUEVA_LIGA_26", label_visibility="collapsed").strip().upper()
             if st.button("➕ CREAR Y ENTRAR", use_container_width=True):
                 if nueva_liga_input:
                     st.session_state.liga_actual = nueva_liga_input
+                    st.query_params["liga"] = nueva_liga_input  # GUARDAR EN URL
                     st.rerun()
                 else: st.error("Escribe un nombre para la nueva liga.")
             
@@ -383,6 +391,7 @@ with col_title:
 with col_btn:
     if st.button("🚪 Salir", use_container_width=True): 
         st.session_state.liga_actual = ""
+        st.query_params.clear() # BORRAR DE LA URL AL SALIR
         st.session_state.menu_seleccionado = "📊 Clasificación General"
         st.rerun()
 
@@ -438,6 +447,7 @@ if menu == "🔄 Cambiar de Liga":
         st.write("")
         if st.button("🚀 Saltar a esta Liga", use_container_width=True):
             st.session_state.liga_actual = liga_salto
+            st.query_params["liga"] = liga_salto  # ACTUALIZAR URL
             st.session_state.menu_seleccionado = "📊 Clasificación General"
             st.rerun()
     else:
@@ -516,7 +526,6 @@ elif menu == "🏆 Tabla de Grupos":
     
     for idx, (grupo, _) in enumerate(GRUPOS.items()):
         with cols[idx % 3]:
-            # Preparar los datos y convertir el índice (posición) en una columna real para poder pintarla
             df_g = df_tabla[df_tabla['Grupo']==grupo][['Equipo','PJ','Pts','GF','GC','Dif']].reset_index(drop=True)
             df_g.index += 1
             df_g.insert(0, 'Pos', df_g.index)
@@ -524,17 +533,11 @@ elif menu == "🏆 Tabla de Grupos":
             
             st.markdown(f"<h4 style='color: #FFD700; margin-bottom: 10px;'>Grupo {grupo}</h4>", unsafe_allow_html=True)
             
-            # Función de colores blindada para evitar fondos blancos de Streamlit
             def hl(row): 
-                if row.name <= 2: 
-                    return ['background-color: #1a472a; color: #ffffff; font-weight: bold;'] * len(row)
-                elif row.name == 3 and row['Equipo'] in mejores_3: 
-                    return ['background-color: #2d4a1e; color: #90EE90; font-weight: bold;'] * len(row)
-                else: 
-                    # BLINDAJE: Fondo gris azulado muy oscuro y texto blanco puro para los eliminados
-                    return ['background-color: #2b303b; color: #ffffff;'] * len(row)
+                if row.name <= 2: return ['background-color: #1a472a; color: #ffffff; font-weight: bold;'] * len(row)
+                elif row.name == 3 and row['Equipo'] in mejores_3: return ['background-color: #2d4a1e; color: #90EE90; font-weight: bold;'] * len(row)
+                else: return ['background-color: #2b303b; color: #ffffff;'] * len(row)
             
-            # Dibujamos ocultando el index falso de pandas, mostrando la columna 'Pos' pintada a nuestro gusto
             st.dataframe(df_g.style.apply(hl, axis=1), use_container_width=True, hide_index=True)
 
 
@@ -665,8 +668,9 @@ elif menu == "📖 Sistema de Puntuación":
 
 
 # ══════════════════════════════════════════
-# ZONA ADMIN
+# ZONA ADMIN (HERRAMIENTAS DE EDICIÓN)
 # ══════════════════════════════════════════
+
 elif menu == "👥 Participantes":
     st.markdown('<div class="titulo-principal">👥 Participantes</div>', unsafe_allow_html=True)
     nombre = st.text_input("Nombre")
