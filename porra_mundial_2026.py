@@ -40,6 +40,7 @@ st.markdown("""
     .mini-card { background-color: #1a202a; border: 1px solid #333; border-radius: 8px; padding: 12px; margin-bottom: 8px; }
     
     .login-wrapper { display: flex; flex-direction: column; align-items: center; width: 100%; margin-top: 0; }
+    .login-box { background: linear-gradient(135deg, #1e2530, #252d3a); border: 1px solid #2d3748; border-radius: 12px; padding: 30px 20px; width: 100%; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.5); margin-bottom: 20px; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -209,7 +210,7 @@ if not st.session_state.liga_actual:
                         st.session_state.liga_actual = codigo; st.rerun()
                 else: st.error("Escribe un código para entrar.")
             
-        # VISTA DE ADMIN (CONTROL TOTAL CON CORONA Y COLORES DEL MUNDIAL)
+        # VISTA DE ADMIN (CONTROL TOTAL)
         else:
             st.markdown('<h3 style="color:#FFD700; text-align:center; margin-top:0;">🛡️ MODO ADMINISTRADOR</h3>', unsafe_allow_html=True)
             
@@ -234,7 +235,6 @@ if not st.session_state.liga_actual:
             
     st.write("")
     
-    # El Login de Admin siempre abajo del todo (Este sí usa expander nativo, que es útil)
     if not st.session_state.admin:
         with st.expander("⚙️ Acceso Administrador"):
             pwd = st.text_input("Contraseña Admin", type="password")
@@ -508,17 +508,34 @@ elif menu == "📊 Clasificación General":
                 else: st.markdown(html_partidos, unsafe_allow_html=True)
 
 
-# --- 2. TABLA DE GRUPOS ---
+# --- 2. TABLA DE GRUPOS CON ALTO CONTRASTE ---
 elif menu == "🏆 Tabla de Grupos":
     st.markdown('<div class="titulo-principal">🏆 Tabla de Grupos</div>', unsafe_allow_html=True)
     mejores_3 = [pos_grupos.get(f"3_{i+1}") for i in range(8)]
     cols = st.columns(3)
+    
     for idx, (grupo, _) in enumerate(GRUPOS.items()):
         with cols[idx % 3]:
-            df_g = df_tabla[df_tabla['Grupo']==grupo][['Equipo','PJ','Pts','GF','GC','Dif']].reset_index(drop=True); df_g.index += 1; df_g[''] = df_g['Equipo'].apply(flag)
+            # Preparar los datos y convertir el índice (posición) en una columna real para poder pintarla
+            df_g = df_tabla[df_tabla['Grupo']==grupo][['Equipo','PJ','Pts','GF','GC','Dif']].reset_index(drop=True)
+            df_g.index += 1
+            df_g.insert(0, 'Pos', df_g.index)
+            df_g.insert(1, '', df_g['Equipo'].apply(flag))
+            
             st.markdown(f"<h4 style='color: #FFD700; margin-bottom: 10px;'>Grupo {grupo}</h4>", unsafe_allow_html=True)
-            def hl(row): return ['background-color:#1a472a;color:white']*len(row) if row.name<=2 else (['background-color:#2d4a1e;color:#90EE90']*len(row) if row.name==3 and row['Equipo'] in mejores_3 else ['color:#bbb']*len(row))
-            st.dataframe(df_g[['','Equipo','PJ','Pts','GF','GC','Dif']].style.apply(hl,axis=1), use_container_width=True, hide_index=False)
+            
+            # Función de colores blindada para evitar fondos blancos de Streamlit
+            def hl(row): 
+                if row.name <= 2: 
+                    return ['background-color: #1a472a; color: #ffffff; font-weight: bold;'] * len(row)
+                elif row.name == 3 and row['Equipo'] in mejores_3: 
+                    return ['background-color: #2d4a1e; color: #90EE90; font-weight: bold;'] * len(row)
+                else: 
+                    # BLINDAJE: Fondo gris azulado muy oscuro y texto blanco puro para los eliminados
+                    return ['background-color: #2b303b; color: #ffffff;'] * len(row)
+            
+            # Dibujamos ocultando el index falso de pandas, mostrando la columna 'Pos' pintada a nuestro gusto
+            st.dataframe(df_g.style.apply(hl, axis=1), use_container_width=True, hide_index=True)
 
 
 # --- 3. RESULTADOS PARTIDOS ---
@@ -648,9 +665,8 @@ elif menu == "📖 Sistema de Puntuación":
 
 
 # ══════════════════════════════════════════
-# ZONA ADMIN (HERRAMIENTAS DE EDICIÓN)
+# ZONA ADMIN
 # ══════════════════════════════════════════
-
 elif menu == "👥 Participantes":
     st.markdown('<div class="titulo-principal">👥 Participantes</div>', unsafe_allow_html=True)
     nombre = st.text_input("Nombre")
@@ -714,7 +730,7 @@ elif menu == "⚔️ Resultados Elim.":
     for i,(m_id,(m1,m2)) in enumerate(CRUCES_FINALES.items()): renderizar(m_id,qu_gan(m1.replace("_L",""),perdedor="_L" in m1),qu_gan(m2.replace("_L",""),perdedor="_L" in m2),cf[i])
 
 elif menu == "🥇 Pichichi Equipo":
-    sel = st.selectbox("Selección Máxima Goleadora (Da puntos extra)", ["Ninguno aún..."] + list(VALOR_EQUIPOS.keys()), index=(["Ninguno aún..."] + list(VALOR_EQUIPOS.keys())).index(pichichi) if pichichi else 0)
+    sel = st.selectbox("Selección del Jugador Pichichi (Bota de Oro)", ["Ninguno aún..."] + list(VALOR_EQUIPOS.keys()), index=(["Ninguno aún..."] + list(VALOR_EQUIPOS.keys())).index(pichichi) if pichichi else 0)
     if st.button("💾 Guardar",use_container_width=True): guardar_pichichi(sel if sel!="Ninguno aún..." else None); st.success("Guardado")
 
 elif menu == "🎯 Pichichis Jugadores":
@@ -752,7 +768,6 @@ elif menu == "➕ Ajuste Puntos":
         nv = st.number_input("Puntos extra:", value=ajustes_manuales.get(p_sel, 0))
         if st.button("💾 Aplicar"): guardar_ajuste_puntos(liga_actual, p_sel, nv); st.rerun()
 
-# --- NUEVO: ZONA DE PELIGRO (LIMPIEZA DE DATOS) ---
 elif menu == "🗑️ Limpiar Datos":
     st.markdown('<div class="titulo-principal">🗑️ Limpiar Resultados</div>', unsafe_allow_html=True)
     st.warning("⚠️ **ATENCIÓN:** Esta acción borrará los resultados y afectará a la puntuación de TODAS las ligas.")
