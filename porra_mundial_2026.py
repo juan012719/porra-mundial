@@ -40,7 +40,6 @@ st.markdown("""
     .mini-card { background-color: #1a202a; border: 1px solid #333; border-radius: 8px; padding: 12px; margin-bottom: 8px; }
     
     .login-wrapper { display: flex; flex-direction: column; align-items: center; width: 100%; margin-top: 0; }
-    .login-box { background: linear-gradient(135deg, #1e2530, #252d3a); border: 1px solid #2d3748; border-radius: 12px; padding: 30px 20px; width: 100%; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.5); margin-bottom: 20px; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -268,7 +267,6 @@ def obtener_tabla_grupos():
         for eq in eqs:
             pts=0; gf=0; gc=0; pj=0
             for p in resultados_grupos.values():
-                # Ignorar claves de ruta manuales en el cálculo de tabla
                 if p.get('equipo_B') == "": continue
                 if p['equipo_A']==eq:
                     pj+=1; gf+=p['goles_A']; gc+=p['goles_B']
@@ -290,10 +288,8 @@ def obtener_clasificados(df):
         if len(eqs)==4: pos[f"1{g}"]=eqs[0]['Equipo']; pos[f"2{g}"]=eqs[1]['Equipo']; ter.append(eqs[2])
     ter=sorted(ter,key=lambda x:(x['Pts'],x['Dif'],x['GF']),reverse=True)
     
-    # Asignación automática por puntos (Default)
     for i in range(min(8,len(ter))): pos[f"3_{i+1}"]=ter[i]['Equipo']
     
-    # SOBREESCRITURA MANUAL (SI EL ADMIN HA ENRUTADO A LOS TERCEROS)
     for i in range(8):
         k = f"ruta_3_{i+1}"
         if k in resultados_grupos:
@@ -309,7 +305,7 @@ def calcular_puntos(df):
     det={e:{"Gr(Partidos)":0,"Gr(Goles)":0,"Gr(Bono)":0,"Eliminatorias":0,"Pichichi":0, "Log_Elim":[]} for e in VALOR_EQUIPOS.keys()}
     
     for p in resultados_grupos.values():
-        if p.get('equipo_B') == "": continue # Ignorar rutas manuales
+        if p.get('equipo_B') == "": continue 
         eA,eB=p['equipo_A'],p['equipo_B']; dif=p['goles_A']-p['goles_B']
         if dif>=3: det[eA]["Gr(Goles)"]+=1; det[eB]["Gr(Goles)"]-=1
         elif dif<=-3: det[eB]["Gr(Goles)"]+=1; det[eA]["Gr(Goles)"]-=1
@@ -325,7 +321,6 @@ def calcular_puntos(df):
             det[eqs[1]['Equipo']]["Gr(Bono)"]+=2
             det[eqs[3]['Equipo']]["Gr(Bono)"] -= 3 if eqs[3]['Pts'] == 0 else 1
             
-    # El bono a los mejores terceros siempre se da a los 8 mejores por puntos, independientemente de su ruta
     ter_b = sorted([e for g in GRUPOS.keys() for e in df[df['Grupo']==g].to_dict('records') if df[df['Grupo']==g].to_dict('records').index(e)==2 and len([p for p in resultados_grupos.values() if p['equipo_A'] in GRUPOS[g] and p.get('equipo_B') != ""])==6], key=lambda x:(x['Pts'],x['Dif'],x['GF']), reverse=True)
     for i in range(min(8,len(ter_b))): det[ter_b[i]['Equipo']]["Gr(Bono)"]+=1
     
@@ -365,6 +360,11 @@ def calcular_puntos(df):
             elif dif<0: pB+=2
         elif res=="Penaltis":
             pA+=1; pB+=1
+            
+        # NUEVO: +1 por pasar de ronda (excepto final y 3er/4to puesto)
+        if "103" not in m_id and "104" not in m_id:
+            if gan == eA: pA += 1
+            elif gan == eB: pB += 1
             
         if m_id=="M104 (FINAL)":
             if gan==eA: pA+=10; pB+=6
@@ -647,6 +647,7 @@ elif menu == "📖 Sistema de Puntuación":
             <li><b>Victoria en 90 min:</b> +3 puntos</li>
             <li><b>Victoria en Prórroga:</b> +2 puntos</li>
             <li><b>Llegar a Penaltis:</b> +1 punto (para AMBOS equipos, ganen o pierdan)</li>
+            <li><b>Pasar de ronda (clasificarse):</b> +1 punto extra</li>
             <li><b>Goleadas:</b> +1 pt a favor / -1 pt en contra</li>
         </ul>
     </div>
@@ -710,7 +711,6 @@ elif menu == "🔀 Asignar 3ºs":
     st.markdown('<div class="titulo-principal">🔀 Enrutar Mejores 3º</div>', unsafe_allow_html=True)
     st.info("La FIFA usa una matriz de 495 combinaciones para decidir qué tercero va a cada partido. Aquí puedes forzar manualmente el cruce correcto una vez se sepa en la vida real.")
     
-    # Calcular los 8 mejores terceros base (por puntos puros)
     ter_base = []
     for g in GRUPOS.keys():
         eqs=df_tabla[df_tabla['Grupo']==g].to_dict('records')
@@ -733,7 +733,6 @@ elif menu == "🔀 Asignar 3ºs":
                 k = f"ruta_{slot}"
                 eq_guardado = resultados_grupos.get(k, {}).get("equipo_A")
                 
-                # Encontrar el índice del equipo guardado, o usar uno por defecto
                 if eq_guardado in ter_nombres:
                     idx = ter_nombres.index(eq_guardado)
                 else:
@@ -747,7 +746,6 @@ elif menu == "🔀 Asignar 3ºs":
                     st.error("⚠️ Has asignado el mismo país a varios huecos. Cada tercero debe ir a un solo partido.")
                 else:
                     for slot, eq in selecciones.items():
-                        # Guardamos esta "ruta" usando la función de resultados con equipo_B vacío como marca especial
                         guardar_resultado_grupo(f"ruta_{slot}", eq, "", 0, 0)
                     st.success("Cruces de dieciseisavos actualizados correctamente.")
                     st.rerun()
